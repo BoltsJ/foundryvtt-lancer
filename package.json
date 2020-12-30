@@ -16,7 +16,7 @@
   "devDependencies": {
     "archiver": "^3.1.1",
     "chalk": "^3.0.0",
-    "foundry-pc-types": "gitlab:Eranziel/foundry-pc-types",
+    "foundry-pc-types": "gitlab:BoltsJ/foundry-pc-types",
     "fs-extra": "^9.0.1",
     "gulp": "^4.0.2",
     "gulp-git": "^2.10.1",
@@ -36,6 +36,7 @@
     "@mdi/font": "^5.8.55",
     "compare-versions": "^3.6.0",
     "lancer-data": "^2.0.35",
+    "lancer-initiative": "github:BoltsJ/lancer-initiative",
     "machine-mind": "^0.1.3"
   }
 }

@@ -91,6 +91,9 @@ import { FauxPersistor } from "./module/ccdata_io";
 import { reload_store } from "./module/item/util";
 import * as macros from "./module/macros";
 
+// Import LancerInitiative
+import { LancerCombat, LancerCombatTracker, LIForm } from "lancer-initiative";
+
 // Import node modules
 import compareVersions = require("compare-versions");
 
@@ -132,6 +135,45 @@ Hooks.once("init", async function () {
   // Record Configuration Values
   CONFIG.Actor.entityClass = LancerActor;
   CONFIG.Item.entityClass = LancerItem;
+
+  CONFIG.LancerInitiative = {
+    module: LANCER.sys_name,
+    def_appearance: {
+      icon: "cci cci-activate",
+      icon_size: 2,
+      player_color: "#44abe0",
+      neutral_color: "#146464",
+      enemy_color: "#d98f30",
+      done_color: "#444444",
+    },
+  };
+  CONFIG.Combat.entityClass = LancerCombat;
+  CONFIG.ui.combat = LancerCombatTracker;
+  game.settings.registerMenu(CONFIG.LancerInitiative.module, "lancerInitiative", {
+    name: game.i18n.localize("LANCERINITIATIVE.IconSettingsMenu"),
+    label: game.i18n.localize("LANCERINITIATIVE.IconSettingsMenu"),
+    type: LIForm,
+    restricted: true,
+  });
+  game.settings.register(CONFIG.LancerInitiative.module, "appearance", {
+    scope: "world",
+    config: false,
+    type: Object,
+  });
+  game.settings.register(CONFIG.LancerInitiative.module, "sort", {
+    name: game.i18n.localize("LANCERINITIATIVE.SortTracker"),
+    hint: game.i18n.localize("LANCERINITIATIVE.SortTrackerDesc"),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false,
+  });
+  game.settings.register(CONFIG.LancerInitiative.module, "enable-initiative", {
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
 
   // Register custom system settings
   registerSettings();
