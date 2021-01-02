@@ -52,7 +52,9 @@ export class LancerDeployableSheet extends LancerActorSheet {
    * Prepare data for rendering the Actor sheet
    * The prepared data object contains both the actor data as well as additional sheet options
    */
+  // @ts-ignore LancerDeployableSheetData and ActorSheetData<any> are incompatible types TODO
   getData(): LancerDeployableSheetData {
+    // @ts-ignore LancerDeployableSheetData and ActorSheetData<any> are incompatible types TODO
     const data: LancerDeployableSheetData = super.getData() as LancerDeployableSheetData;
 
     // Populate name if blank (new Actor)

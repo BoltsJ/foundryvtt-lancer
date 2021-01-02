@@ -70,7 +70,9 @@ export class LancerPilotSheet extends LancerActorSheet {
    * Prepare data for rendering the Actor sheet
    * The prepared data object contains both the actor data as well as additional sheet options
    */
+  // @ts-ignore LancerPilotSheetData and ActorSheetData<any> are incompatible types TODO
   getData(): LancerPilotSheetData {
+    // @ts-ignore LancerPilotSheetData and ActorSheetData<any> are incompatible types TODO
     const data: LancerPilotSheetData = super.getData() as LancerPilotSheetData;
 
     this._prepareItems(data);

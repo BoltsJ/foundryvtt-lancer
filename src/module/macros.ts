@@ -152,7 +152,7 @@ export function getMacroSpeaker(a_id?: string): LancerActor | null {
   // Determine which Actor to speak as
   const speaker = ChatMessage.getSpeaker();
   // console.log(`${lp} Macro speaker`, speaker);
-  let actor: Actor | null = null;
+  let actor: Actor | undefined = undefined;
   // console.log(game.actors.tokens);
   try {
     if (speaker.token) {
@@ -439,9 +439,10 @@ async function rollAttackMacro(actor: Actor, data: LancerAttackMacroData) {
     }
     if (data.overkill && droll) {
       // Count overkill heat
-      // @ts-ignore
       droll.terms.forEach(p => {
+      // @ts-ignore Roll needs updating TODO
         if (p.results && Array.isArray(p.results)) {
+      // @ts-ignore ^ TODO
           p.results.forEach((r: any) => {
             if (r.exploded) {
               overkill_heat += 1;

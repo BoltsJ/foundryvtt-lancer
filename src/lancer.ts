@@ -130,7 +130,9 @@ Hooks.once("init", async function () {
   };
 
   // Record Configuration Values
+  // @ts-ignore Actor types not updated or are wrong TODO
   CONFIG.Actor.entityClass = LancerActor;
+  // @ts-ignore Item types not updated or are wrong TODO
   CONFIG.Item.entityClass = LancerItem;
 
   // Register custom system settings

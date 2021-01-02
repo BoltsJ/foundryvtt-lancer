@@ -104,6 +104,7 @@ async function get_pack<T>(pack_name: string): Promise<T[]> {
   let full_pack_name = `world.${pack_name}`;
   let pack = game.packs.get(full_pack_name);
   if (pack) {
+    // @ts-ignore Compendium typing is lacking TODO
     return pack.getContent().then(g => g.map(v => v.data)) as Promise<T[]>;
   } else {
     console.warn("No such pack: ", full_pack_name);
@@ -164,6 +165,7 @@ async function pack_lookup<T extends LancerItem>(
 
   // Lookup in all items
   let index = await pack.getContent();
+  // @ts-ignore Compendium typing is lacking TODO
   let found = index.find(i => i.data.data.id === compcon_id);
   if (!found) {
     return null;

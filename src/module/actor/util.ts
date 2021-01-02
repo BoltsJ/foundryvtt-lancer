@@ -133,11 +133,13 @@ export async function update_pilot(pilot: LancerActor, cc_pilot: mm.Pilot): Prom
       let cc_integratedMounts = aml.IntegratedMounts
       // Convert to foundry
 
+      // @ts-ignore LancerItem not assignable to Item TODO
       let weaponData = pilot.items.filter((item: LancerItem) => item.type === "mech_weapon")
 
       let mounts: LancerMountData[] = [];
       let equippableMounts = cc_equippableMounts.map( cc_mount => {
         let is_mr = cc_mount.Bonuses.includes(mr)
+        // @ts-ignore LancerMechWeaponItemData incompatible with Item<any> TODO
         let mountWeapons = cc_mount.Weapons.map(cc_weapon => {
           return weaponData.find(weapon => {
             return cc_weapon.ID === weapon.data.data.id
@@ -154,6 +156,7 @@ export async function update_pilot(pilot: LancerActor, cc_pilot: mm.Pilot): Prom
       })
 
       let integratedMounts = cc_integratedMounts.map( cc_mount => {
+        // @ts-ignore LancerMechWeaponItemData incompatible with Item<any> TODO
         let mountWeapons = cc_mount.Weapons.map(cc_weapon => {
           return weaponData.find(weapon => {
             return cc_weapon.ID === weapon.data.data.id

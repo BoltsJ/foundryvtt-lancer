@@ -8,7 +8,6 @@ export class LancerFrameSheet extends LancerItemSheet {
   /**
    * @override
    * Extend and override the default options used by the generic Lancer item sheet
-   * @returns {Object}
    */
   static get defaultOptions() {
     return mergeObject(super.defaultOptions, {

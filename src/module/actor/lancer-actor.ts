@@ -415,6 +415,7 @@ export class LancerActor extends Actor {
       };
     }
     const template = `systems/lancer/templates/chat/overheat-card.html`;
+    // @ts-ignore Eventually handle undefined return TODO
     const actor: Actor = game.actors.get(ChatMessage.getSpeaker().actor);
     return renderMacro(actor, template, templateData);
   }
@@ -528,6 +529,7 @@ export class LancerActor extends Actor {
       };
     }
     const template = `systems/lancer/templates/chat/structure-card.html`;
+    // @ts-ignore Eventually handle undefined return TODO
     const actor: Actor = game.actors.get(ChatMessage.getSpeaker().actor);
     return renderMacro(actor, template, templateData);
   }

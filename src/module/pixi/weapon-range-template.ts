@@ -56,6 +56,7 @@ export class WeaponRangeTemplate extends MeasuredTemplate {
       x: 0,
       y: 0,
       angle: 58,
+      // @ts-ignore User.color getter missing TODO
       fillColor: game.user.color,
       isBurst: type === "Burst",
       range: { type, val },
@@ -71,6 +72,7 @@ export class WeaponRangeTemplate extends MeasuredTemplate {
     const initialLayer = canvas.activeLayer;
     this.draw();
     this.layer.activate();
+    // @ts-ignore PlaceableObject.addChild missing or PlaceablesLayer.preview wrong type TODO
     this.layer.preview.addChild(this);
     this.activatePreviewListeners(initialLayer);
   }
@@ -95,6 +97,7 @@ export class WeaponRangeTemplate extends MeasuredTemplate {
 
     // Cancel the workflow (right-click)
     handlers.rc = () => {
+      // @ts-ignore PlaceableObject.removeChildren missing or PlaceablesLayer.preview wrong type TODO
       this.layer.preview.removeChildren();
       canvas.stage.off("mousemove", handlers.mm);
       canvas.stage.off("mousedown", handlers.lc);

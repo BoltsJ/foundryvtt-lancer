@@ -61,7 +61,9 @@ export class LancerNPCSheet extends LancerActorSheet {
    * Prepare data for rendering the Actor sheet
    * The prepared data object contains both the actor data as well as additional sheet options
    */
+  // @ts-ignore LancerNPCSheetData and ActorSheetData<any> are incompatible types TODO
   getData(): LancerNPCSheetData {
+    // @ts-ignore LancerNPCSheetData and ActorSheetData<any> are incompatible types TODO
     const data: LancerNPCSheetData = super.getData() as LancerNPCSheetData;
 
     this._prepareItems(data);
