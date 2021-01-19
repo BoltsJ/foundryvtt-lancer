@@ -1,7 +1,7 @@
 import {
+  LancerActorData,
   LancerPilotActorData,
   LancerNPCActorData,
-  LancerDeployableActorData,
   LancerFrameStatsData,
   LancerFrameItemData,
   LancerNPCClassStatsData,
@@ -10,7 +10,7 @@ import {
 } from "../interfaces";
 import { LANCER } from "../config";
 import { MountType } from "machine-mind";
-import { LancerFrame, LancerItemData } from "../item/lancer-item";
+import { LancerItemData } from "../item/lancer-item";
 import { ItemDataManifest } from "../item/util";
 import { renderMacro } from "../macros";
 const lp = LANCER.log_prefix;
@@ -84,20 +84,7 @@ export function lancerActorInit(data: any) {
 /**
  * Extend the Actor class for Lancer Actors.
  */
-export class LancerActor extends Actor {
-  data!: LancerPilotActorData | LancerNPCActorData | LancerDeployableActorData;
-
-  // Some TypeGuards...
-  isPilot = (
-    data: LancerPilotActorData | LancerNPCActorData | LancerDeployableActorData
-  ): data is LancerPilotActorData => data.type === "Pilot";
-  isNPC = (
-    data: LancerPilotActorData | LancerNPCActorData | LancerDeployableActorData
-  ): data is LancerNPCActorData => data.type === "NPC";
-  isDep = (
-    data: LancerPilotActorData | LancerNPCActorData | LancerDeployableActorData
-  ): data is LancerDeployableActorData => data.type === "deployable";
-
+export class LancerActor extends Actor<LancerActorData> {
   /**
    * @override
    * Handle how changes to a Token attribute bar are applied to the Actor.
@@ -112,7 +99,7 @@ export class LancerActor extends Actor {
     value: number,
     isDelta: boolean = false,
     isBar: boolean = true
-  ) {
+  ): Promise<this> {
     const current = getProperty(this.data.data, attribute);
     if (isBar) {
       if (isDelta) value = Number(current.value) + value;
@@ -132,8 +119,8 @@ export class LancerActor extends Actor {
     // Function is only applicable to pilots.
     if (this.data.type !== "pilot") return;
 
-    const data = duplicate(this.data) as LancerPilotActorData;
-    const mech = duplicate((this.data as LancerPilotActorData).data.mech);
+    const data = duplicate(this.data)
+    const mech = duplicate(data.data.mech);
 
     if (!oldFrame) {
       oldFrame = {
@@ -311,7 +298,7 @@ export class LancerActor extends Actor {
    */
   async overheatMech() {
     // Assert that we aren't on a deployable somehow
-    if (this.isDep(this.data)) {
+    if (this.data.type === "deployable") {
       return;
     }
 
@@ -354,7 +341,9 @@ export class LancerActor extends Actor {
 
     const mech = this.data.data.mech;
     if (
+      //@ts-ignore game is nullable TODO
       game.settings.get(LANCER.sys_name, LANCER.setting_automation) &&
+      //@ts-ignore game is nullable TODO
       game.settings.get(LANCER.sys_name, LANCER.setting_auto_structure)
     ) {
       if (mech.heat.value > mech.heat.max) {
@@ -364,6 +353,7 @@ export class LancerActor extends Actor {
       }
     }
     if (mech.stress.value === mech.stress.max) {
+      //@ts-ignore ui.notifications is possibly undefined TODO
       ui.notifications.info("The mech is at full Stress, no overheating check to roll.");
       return;
     }
@@ -377,11 +367,14 @@ export class LancerActor extends Actor {
 
       let roll = new Roll(`${damage}d6kl1`).roll();
       let result = roll.total;
+      if (result === null) {
+        throw "Rolling failed";
+      }
 
       let tt = await roll.getTooltip();
       let title = stressTableT[result];
       let text = stressTableD(result, remStress);
-      let total = roll.total.toString();
+      let total = result.toString();
 
       // Critical
       // This is fine
@@ -426,7 +419,7 @@ export class LancerActor extends Actor {
    */
   async structureMech() {
     // Assert that we aren't on a deployable somehow
-    if (this.isDep(this.data)) {
+    if (this.data.type === "deployable") {
       return;
     }
 
@@ -470,7 +463,9 @@ export class LancerActor extends Actor {
 
     const mech = this.data.data.mech;
     if (
+      // @ts-ignore game is nullable TODO
       game.settings.get(LANCER.sys_name, LANCER.setting_automation) &&
+      // @ts-ignore game is nullable TODO
       game.settings.get(LANCER.sys_name, LANCER.setting_auto_structure)
     ) {
       if (mech.hp.value <= 0) {
@@ -479,6 +474,7 @@ export class LancerActor extends Actor {
       }
     }
     if (mech.structure.value === mech.structure.max) {
+      //@ts-ignore ui.notifications is possibly undefined TODO
       ui.notifications.info("The mech is at full Structure, no structure check to roll.");
       return;
     }
@@ -491,11 +487,14 @@ export class LancerActor extends Actor {
 
       let roll = new Roll(`${damage}d6kl1`).roll();
       let result = roll.total;
+      if (result === null) {
+        throw "Roll failed";
+      }
 
       let tt = await roll.getTooltip();
       let title = structTableT[result];
       let text = structTableD(result, remStruct);
-      let total = roll.total.toString();
+      let total = result.toString();
 
       // Crushing hits
       // This is fine

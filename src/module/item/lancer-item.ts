@@ -111,8 +111,7 @@ export function lancerItemInit(data: any) {
   });
 }
 
-export class LancerItem extends Item {
-  data!:
+export class LancerItem extends Item<
     | LancerSkillItemData
     | LancerTalentItemData
     | LancerCoreBonusItemData
@@ -125,7 +124,8 @@ export class LancerItem extends Item {
     | LancerMechWeaponItemData
     | LancerNPCFeatureItemData
     | LancerNPCTemplateItemData
-    | LancerNPCClassItemData;
+    | LancerNPCClassItemData
+    > {
 
   // ============================================================
   //          SKILLS
@@ -300,8 +300,7 @@ export class LancerItem extends Item {
 }
 
 // Narrow down our types
-export interface LancerItemData extends ItemData {
-  _id?: string;
+export interface LancerItemData extends Item.Data {
   type: LancerItemType;
 }
 
@@ -492,7 +491,7 @@ export function weapon_range_selector(
   return html;
 }
 
-function damage_selector(dmg_type: DamageType, key: number | string, data_target: string) {
+function damage_selector(dmg_type: DamageType, _key: number | string, data_target: string) {
   const dtype = dmg_type!.toLowerCase();
   let html = '<div class="flexrow flex-center" style="padding: 5px; flex-wrap: nowrap;">';
 

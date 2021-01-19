@@ -13,6 +13,7 @@ import {
   LancerNPCClass,
   LancerNPCTemplate,
   LancerItemData,
+  LancerItem,
 } from "./item/lancer-item";
 import { RangeType, NPCTag } from "./enums";
 import { EffectData } from "./item/effects";
@@ -174,8 +175,8 @@ declare interface LancerPilotData {
 }
 
 // Utility interface that basically just asserts the type of an actors data
-declare interface LancerPilotActorData extends ActorData {
-  data: LancerPilotData;
+declare interface LancerPilotActorData extends Actor.Data<LancerPilotData, LancerItem> {
+  type: "pilot";
 }
 
 // Derived/consolidated data for an actor, used by handlebars template.
@@ -215,8 +216,8 @@ declare interface LancerNPCData {
 }
 
 // Utility interface that basically just asserts the type of an actors data
-declare interface LancerNPCActorData extends ActorData {
-  data: LancerNPCData;
+declare interface LancerNPCActorData extends Actor.Data<LancerNPCData, LancerItem> {
+  type: "npc";
 }
 
 // Derived/consolidated data for an npc, used by handlebars template.
@@ -244,9 +245,11 @@ declare interface LancerDeployableData {
 }
 
 // Utility interface that basically just asserts the type of an actors data
-declare interface LancerDeployableActorData extends ActorData {
-  data: LancerDeployableData;
+declare interface LancerDeployableActorData extends Actor.Data<LancerDeployableData, LancerItem> {
+  type: "deployable";
 }
+
+declare type LancerActorData = LancerPilotActorData | LancerNPCActorData | LancerDeployableActorData;
 
 declare interface LancerDeployableSheetData extends ActorSheetData {
   actor: LancerDeployableActorData;
