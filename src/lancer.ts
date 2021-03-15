@@ -130,9 +130,7 @@ Hooks.once("init", async function () {
   };
 
   // Record Configuration Values
-  // @ts-ignore Actor types not updated or are wrong TODO
   CONFIG.Actor.entityClass = LancerActor;
-  // @ts-ignore Item types not updated or are wrong TODO
   CONFIG.Item.entityClass = LancerItem;
 
   // Register custom system settings
@@ -141,12 +139,8 @@ Hooks.once("init", async function () {
   // Set up system status icons
   const keepStock = game.settings.get(LANCER.sys_name, LANCER.setting_stock_icons);
   let statuses: { id: string; label: string; icon: string }[] = [];
-  // The type for statusEffects is wrong
-  //@ts-ignore
   if (keepStock) statuses = statuses.concat(CONFIG.statusEffects);
   statuses = statuses.concat(STATUSES);
-  // The type for statusEffects is wrong
-  //@ts-ignore
   CONFIG.statusEffects = statuses;
 
   // Register Web Components
@@ -376,7 +370,7 @@ Hooks.once("setup", async function () {
   } catch (error) {
     console.log(`Fatal error loading COMP/CON`);
     console.log(error);
-    ui.notifications.error(
+    ui.notifications?.error(
       `Warning: COMP/CON has failed to load. You may experience severe data integrity failure`
     );
   }
@@ -435,14 +429,14 @@ Hooks.on("renderChatMessage", async (cm: ChatMessage, html: any, data: any) => {
           templateData
         );
         let chat_data = {
-          user: game.user,
+          user: game.user!,
           type: CONST.CHAT_MESSAGE_TYPES.ROLL,
           roll: templateData.roll,
           speaker: data.message.speaker,
           content: html,
         };
         let cm = await ChatMessage.create(chat_data);
-        cm.render();
+        cm?.render();
         return Promise.resolve();
       });
     }
@@ -541,8 +535,7 @@ Hooks.on("hotbarDrop", (_bar: any, data: any, slot: number) => {
   }
 
   // Until we properly register commands as something macros can have...
-  // @ts-ignore
-  let macro = game.macros.entities.find(
+  let macro = game.macros!.entities.find(
     (m: Macro) => m.name === title && (m.data as any).command === command
   );
   if (!macro) {
@@ -554,9 +547,9 @@ Hooks.on("hotbarDrop", (_bar: any, data: any, slot: number) => {
         img: img,
       },
       { displaySheet: false }
-    ).then(macro => game.user.assignHotbarMacro(macro as Macro, slot));
+    ).then(macro => game.user!.assignHotbarMacro(macro as Macro, slot));
   } else {
-    game.user.assignHotbarMacro(macro, slot).then();
+    game.user!.assignHotbarMacro(macro, slot).then();
   }
 });
 
@@ -574,14 +567,14 @@ async function versionCheck() {
   let needMigration = currentVersion ? compareVersions(currentVersion, NEEDS_MIGRATION_VERSION) : 1;
 
   // Check whether system has been updated since last run.
-  if (compareVersions(currentVersion, game.system.data.version) != 0 && game.user.isGM) {
+  if (compareVersions(currentVersion, game.system.data.version) != 0 && game.user!.isGM) {
     // Un-hide the welcome message
     await game.settings.set(LANCER.sys_name, LANCER.setting_welcome, false);
 
     if (needMigration <= 0) {
       if (currentVersion && compareVersions(currentVersion, COMPATIBLE_MIGRATION_VERSION) < 0) {
         // System version is too old for migration
-        ui.notifications.error(
+        ui.notifications?.error(
           `Your LANCER system data is from too old a version and cannot be reliably migrated to the latest version. The process will be attempted, but errors may occur.`,
           { permanent: true }
         );
@@ -608,11 +601,10 @@ async function versionCheck() {
   };
 
   for (const k in supportedFeatures) {
-    // This is fine so...
-    //@ts-ignore
+    //@ts-ignore This is fine...
     if (supportedFeatures[k] !== window.FEATURES[k]) {
       console.log(`Major version error for feature ${k}`);
-      ui.notifications.error(
+      ui.notifications?.error(
         `Warning: A major version incompatibility has been detected. You may experience issues, please return to a supported version.`
       );
     }

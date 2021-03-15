@@ -1,12 +1,14 @@
 import { LANCER } from "../config";
 import { LancerStatMacroData } from "../interfaces";
 import { LancerActor } from "./lancer-actor";
+import { LancerGame } from "../lancer-game";
+import { LancerItemData } from "../item/lancer-item";
 const lp = LANCER.log_prefix;
 
 /**
  * Extend the basic ActorSheet
  */
-export class LancerActorSheet extends ActorSheet {
+export class LancerActorSheet<D extends ActorSheet.Data> extends ActorSheet<D, LancerActor> {
   /**
    * A convenience reference to the Actor entity
    */
@@ -113,7 +115,7 @@ export class LancerActorSheet extends ActorSheet {
       };
 
       console.log(`${lp} Rolling '${mData.title}' trigger (d20 + ${mData.bonus})`);
-      game.lancer.rollStatMacro(this.actor, mData);
+      (<LancerGame>game).lancer.rollStatMacro(this.actor, mData);
     });
   }
 
@@ -128,7 +130,7 @@ export class LancerActorSheet extends ActorSheet {
       const li = $(ev.currentTarget);
       const item = this.actor.getOwnedItem(li.data("itemId"));
       if (item) {
-        item.sheet.render(true);
+        item.sheet?.render(true);
       }
     });
   }
@@ -147,7 +149,7 @@ export class LancerActorSheet extends ActorSheet {
     console.log(event);
     // Get dropped data
     let data: any;
-    let item: Item | null = null;
+    let item: Item | undefined;
     try {
       data = JSON.parse(event.dataTransfer.getData("text/plain"));
       if (data.type !== "Item") {
@@ -164,12 +166,12 @@ export class LancerActorSheet extends ActorSheet {
     // NOTE: these cases are copied almost verbatim from ActorSheet._onDrop
     // Case 1 - Item is from a Compendium pack
     if (data.pack) {
-      item = (await game.packs.get(data.pack)!.getEntity(data.id)) as Item;
+      item = (await game.packs!.get(data.pack)!.getEntity(data.id)) as Item;
       console.log(`${lp} Item dropped from compendium: `, item);
     }
     // Case 2 - Item is a World entity
     else if (!data.data) {
-      item = game.items.get(data.id);
+      item = game.items!.get(data.id);
       console.log(`${lp} Item dropped from world: `, item);
     }
     // If item isn't from a Compendium or World entity,
@@ -181,8 +183,8 @@ export class LancerActorSheet extends ActorSheet {
 
     const actor = this.actor as LancerActor;
     // Only return the Item if user is owner or GM.
-    if (!actor.owner && !game.user.isGM) {
-      ui.notifications.warn(
+    if (!actor.owner && !game.user!.isGM) {
+      ui.notifications?.warn(
         `LANCER, you shouldn't try to modify ${actor.name}'s loadout. Access Denied.`
       );
       return Promise.resolve(null);
@@ -191,13 +193,12 @@ export class LancerActorSheet extends ActorSheet {
   }
 
   async _addOwnedItem(item: Item) {
-    const actor = this.actor as LancerActor;
-    console.log(`${lp} Copying ${item.name} to ${actor.name}.`);
-    const dupData = duplicate(item.data);
-    const newItem = await actor.createOwnedItem(dupData);
+    console.log(`${lp} Copying ${item.name} to ${this.actor.name}.`);
+    const dupData = duplicate(item.data) as LancerItemData;
+    const newItem = await this.actor.createOwnedItem(dupData);
     // Make sure the new item includes all of the data from the original.
-    (dupData as any)._id = newItem._id;
-    await actor.updateOwnedItem(dupData);
+    dupData._id = newItem._id;
+    await this.actor.updateOwnedItem(dupData);
     return Promise.resolve(true);
   }
 

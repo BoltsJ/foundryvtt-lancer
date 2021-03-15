@@ -175,12 +175,12 @@ declare interface LancerPilotData {
 }
 
 // Utility interface that basically just asserts the type of an actors data
-declare interface LancerPilotActorData extends Actor.Data<LancerPilotData, LancerItem> {
+declare interface LancerPilotActorData extends Actor.Data<LancerPilotData, LancerItemData> {
   type: "pilot";
 }
 
 // Derived/consolidated data for an actor, used by handlebars template.
-declare interface LancerPilotSheetData extends ActorSheetData {
+declare interface LancerPilotSheetData extends ActorSheet.Data<LancerActor> {
   actor: LancerPilotActorData;
   data: LancerPilotData;
   skills: LancerSkill[];
@@ -216,12 +216,12 @@ declare interface LancerNPCData {
 }
 
 // Utility interface that basically just asserts the type of an actors data
-declare interface LancerNPCActorData extends Actor.Data<LancerNPCData, LancerItem> {
+declare interface LancerNPCActorData extends Actor.Data<LancerNPCData, LancerItemData> {
   type: "npc";
 }
 
 // Derived/consolidated data for an npc, used by handlebars template.
-declare interface LancerNPCSheetData extends ActorSheetData {
+declare interface LancerNPCSheetData extends ActorSheet.Data<LancerActor> {
   actor: LancerNPCActorData;
   data: LancerNPCData;
   npc_class: LancerNPCClass;
@@ -245,13 +245,17 @@ declare interface LancerDeployableData {
 }
 
 // Utility interface that basically just asserts the type of an actors data
-declare interface LancerDeployableActorData extends Actor.Data<LancerDeployableData, LancerItem> {
+declare interface LancerDeployableActorData
+  extends Actor.Data<LancerDeployableData, LancerItemData> {
   type: "deployable";
 }
 
-declare type LancerActorData = LancerPilotActorData | LancerNPCActorData | LancerDeployableActorData;
+declare type LancerActorData =
+  | LancerPilotActorData
+  | LancerNPCActorData
+  | LancerDeployableActorData;
 
-declare interface LancerDeployableSheetData extends ActorSheetData {
+declare interface LancerDeployableSheetData extends ActorSheet.Data<LancerActor> {
   actor: LancerDeployableActorData;
   data: LancerDeployableData;
 }
@@ -310,8 +314,7 @@ declare interface LancerSkillData {
   family: string;
 }
 
-declare interface LancerSkillItemData extends LancerItemData {
-  data: LancerSkillData;
+declare interface LancerSkillItemData extends Item.Data<LancerSkillData> {
   type: "skill";
 }
 
@@ -489,10 +492,7 @@ declare interface LancerFrameItemData extends LancerItemData {
   type: "frame";
 }
 
-declare interface LancerFrameSheetData extends ItemSheetData {
-  item?: LancerFrameItemData;
-  data?: LancerFrameData;
-}
+declare interface LancerFrameSheetData extends ItemSheet.Data<LancerFrame> { }
 
 // -------- Mech System data -------------------------------------
 declare interface LancerMechSystemData extends LancerLicensedItemData, LancerMechEquipmentData {

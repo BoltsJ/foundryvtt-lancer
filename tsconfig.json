@@ -4,13 +4,14 @@
 		"experimentalDecorators": true,
 		"outDir": "./dist/",
 		"module": "commonjs",
+		"moduleResolution": "node",
 		"sourceMap": true,
 		"lib": [
 			"DOM",
 			"ES6",
 			"ES2017"
 		],
-		"types": ["foundry-vtt-types"],
+		"types": ["@league-of-foundry-developers/foundry-vtt-types"],
 		"strict": true,
 		"skipLibCheck": true,
 	}

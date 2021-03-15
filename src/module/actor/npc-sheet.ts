@@ -7,6 +7,7 @@ import {
   LancerTechMacroData,
   LancerNPCTemplateItemData,
   LancerNPCClassItemData,
+  LancerNPCFeatureItemData,
 } from "../interfaces";
 import {
   LancerNPCClass,
@@ -20,12 +21,13 @@ import { get_NpcFeatures_pack, ItemManifest, ItemDataManifest } from "../item/ut
 import { LancerNPCTechData, LancerNPCWeaponData } from "../item/npc-feature";
 import { LancerActorSheet } from "./lancer-actor-sheet";
 import { prepareItemMacro } from "../macros";
+import { LancerGame } from "../lancer-game";
 const lp = LANCER.log_prefix;
 
 /**
  * Extend the basic ActorSheet
  */
-export class LancerNPCSheet extends LancerActorSheet {
+export class LancerNPCSheet extends LancerActorSheet<LancerNPCSheetData> {
   /**
    * A convenience reference to the Actor entity
    */
@@ -37,10 +39,10 @@ export class LancerNPCSheet extends LancerActorSheet {
 
   /**
    * Extend and override the default options used by the NPC Sheet
-   * @returns {Object}
    */
   static get defaultOptions() {
-    return mergeObject(super.defaultOptions, {
+    return {
+      ...super.defaultOptions,
       classes: ["lancer", "sheet", "actor", "npc"],
       template: "systems/lancer/templates/actor/npc.html",
       width: 800,
@@ -52,7 +54,7 @@ export class LancerNPCSheet extends LancerActorSheet {
           initial: "mech",
         },
       ],
-    });
+    };
   }
 
   /* -------------------------------------------- */
@@ -61,9 +63,7 @@ export class LancerNPCSheet extends LancerActorSheet {
    * Prepare data for rendering the Actor sheet
    * The prepared data object contains both the actor data as well as additional sheet options
    */
-  // @ts-ignore LancerNPCSheetData and ActorSheetData<any> are incompatible types TODO
   getData(): LancerNPCSheetData {
-    // @ts-ignore LancerNPCSheetData and ActorSheetData<any> are incompatible types TODO
     const data: LancerNPCSheetData = super.getData() as LancerNPCSheetData;
 
     this._prepareItems(data);
@@ -82,7 +82,7 @@ export class LancerNPCSheet extends LancerActorSheet {
   _prepareItems(data: LancerNPCSheetData) {
     // let npc_items = this.actor.items as Collection<LancerItem>;
     // let sorted = new ItemManifest().add_items(npc_items.values());
-    let npc_item_data = (data.items as unknown) as LancerItemData[];
+    let npc_item_data = data.actor.items;
     let sorted = new ItemDataManifest().add_items(npc_item_data.values());
 
     //@ts-ignore                Doesn't work now, adding a ts-ignore though.... -Grygon
@@ -133,7 +133,7 @@ export class LancerNPCSheet extends LancerActorSheet {
         };
 
         console.log(`${lp} Rolling ${mData.title} check, bonus: ${mData.bonus}`);
-        game.lancer.prepareStatMacro(this.actor._id, this.getStatPath(ev)!);
+        (<LancerGame>game).lancer.prepareStatMacro(this.actor._id, this.getStatPath(ev)!);
       });
 
       // Trigger rollers
@@ -148,15 +148,15 @@ export class LancerNPCSheet extends LancerActorSheet {
         const weaponElement = $(ev.currentTarget).closest(".weapon")[0] as HTMLElement;
         // console.log(weaponElement);
         const weaponId = weaponElement.getAttribute("data-item-id");
-        if (!weaponId) return ui.notifications.warn(`Error rolling macro: No weapon ID!`);
+        if (!weaponId) return ui.notifications?.warn(`Error rolling macro: No weapon ID!`);
         const item = this.actor.getOwnedItem(weaponId);
         if (!item)
-          return ui.notifications.warn(
+          return ui.notifications?.warn(
             `Error rolling macro: Couldn't find weapon with ID ${weaponId}.`
           );
 
         const weapon = item as LancerNPCFeature;
-        game.lancer.prepareItemMacro(this.actor._id, weapon._id);
+        (<LancerGame>game).lancer.prepareItemMacro(this.actor._id, weapon._id);
       });
 
       // Tech rollers
@@ -166,7 +166,7 @@ export class LancerNPCSheet extends LancerActorSheet {
         ev.stopPropagation();
         const techElement = $(ev.currentTarget).closest(".tech")[0] as HTMLElement;
         let techId = techElement.getAttribute("data-item-id");
-        game.lancer.prepareItemMacro(this.actor._id, techId!);
+        (<LancerGame>game).lancer.prepareItemMacro(this.actor._id, techId!);
       });
     }
     if (this.actor.owner) {
@@ -176,7 +176,7 @@ export class LancerNPCSheet extends LancerActorSheet {
         .find('li[class*="item"]')
         .add('span[class*="item"]')
         .add('[class*="macroable"]')
-        .each((i: number, item: any) => {
+        .each((_i, item) => {
           if (item.classList.contains("inventory-header")) return;
           if (item.classList.contains("roll-stat"))
             item.addEventListener("dragstart", haseMacroHandler, false);
@@ -190,7 +190,7 @@ export class LancerNPCSheet extends LancerActorSheet {
 
       // Delete Item when trash can is clicked
       let items = html.find('.arr-control[data-action*="delete"]');
-      items.on("click", async (ev: Event) => {
+      items.on("click", async ev => {
         if (!ev.currentTarget) return; // No target, let other handlers take care of it.
         ev.stopPropagation(); // Avoids triggering parent event handlers
         const li = $(ev.currentTarget).closest(".item");
@@ -204,11 +204,11 @@ export class LancerNPCSheet extends LancerActorSheet {
 
       // Change tier
       let tier_selector = html.find('select.tier-control[data-action*="update"]');
-      tier_selector.on("change", async (ev: Event) => {
-        if (!ev.currentTarget) return; // No target, let other handlers take care of it.
+      tier_selector.on("change", async ev => {
+        if (!ev.currentTarget || !(this.actor.data.type === "npc")) return; // No target, let other handlers take care of it.
         ev.stopPropagation();
         let tier = (ev.currentTarget as HTMLSelectElement).selectedOptions[0].value;
-        await this.actor.update({ "data.tier": tier });
+        await this.actor.update({ "data.tier": tier as any });
         // Set Values for
         let actor = this.actor as LancerActor;
         let NPCClassStats: LancerNPCClassStatsData;
@@ -224,7 +224,7 @@ export class LancerNPCSheet extends LancerActorSheet {
     // For roll-stat macros
     event.stopPropagation(); // Avoids triggering parent event handlers
     let statInput = getStatInput(event);
-    if (!statInput) return ui.notifications.error("Error finding stat input for macro.");
+    if (!statInput) return ui.notifications?.error("Error finding stat input for macro.");
 
     let tSplit = statInput.id.split(".");
     let data = {
@@ -269,7 +269,7 @@ export class LancerNPCSheet extends LancerActorSheet {
       }
       // Disallow adding pilot items
       else if (LANCER.pilot_items.includes(item.type)) {
-        ui.notifications.error(`Cannot add Item of type "${item.type}" to an NPC.`);
+        ui.notifications?.error(`Cannot add Item of type "${item.type}" to an NPC.`);
         return Promise.resolve(false);
       }
     }
@@ -291,7 +291,9 @@ export class LancerNPCSheet extends LancerActorSheet {
 
     // Add all base features to the actor
     for (let feature of featureList) {
-      const newFeature = (await actor.createOwnedItem(duplicate(feature))) as any;
+      const newFeature: LancerNPCFeatureItemData = (await actor.createOwnedItem(
+        duplicate<LancerNPCFeatureItemData, "lenient">(feature)
+      )) as LancerNPCFeatureItemData;
       console.log(`${lp} Added ${newFeature.data.name} to ${actor.name}.`);
     }
     return Promise.resolve();
@@ -317,7 +319,8 @@ export class LancerNPCSheet extends LancerActorSheet {
     if (item.type === "npc_class") {
       // Add new class
       let newNPCClassStats: LancerNPCClassStatsData;
-      const npcClass = (await actor.createOwnedItem(duplicate(item.data))) as any;
+      // @ts-ignore duplicate is cursed af
+      const npcClass = (await actor.createOwnedItem(duplicate(item.data))) as LancerNPCClassItemData;
       console.log(`${lp} Added ${npcClass.name} to ${actor.name}.`);
       newNPCClassStats = npcClass.data.stats;
       if (newNPCClassStats) {
@@ -347,6 +350,7 @@ export class LancerNPCSheet extends LancerActorSheet {
   async addTemplate(actor: LancerActor, templateItem: LancerNPCTemplate) {
     if (templateItem.type === "npc_template") {
       // Add new template
+      // @ts-ignore duplicate is cursed af
       const npcTemplate = (await actor.createOwnedItem(duplicate(templateItem.data))) as any;
       console.log(`${lp} Added ${npcTemplate.name} to ${actor.name}.`);
 
@@ -372,8 +376,10 @@ export class LancerNPCSheet extends LancerActorSheet {
    * This defines how to update the subject of the form when the form is submitted
    * @private
    */
-  _updateObject(event: Event | JQuery.Event, formData: any): Promise<any> {
+  _updateObject(_event: Event | JQuery.Event, formData: any): Promise<any> {
     // Do these only if the name updated
+    if (!(this.actor.data.type === "npc"))
+      throw new Error(`Bad sheet configuration for actor ${this.actor.id}`);
     if (this.actor.data.data.name !== formData["data.name"]) {
       // Copy the NPC name into the Actor data.
       formData["name"] = formData["data.name"];

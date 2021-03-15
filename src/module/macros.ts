@@ -21,6 +21,7 @@ import {
   LancerOverchargeMacroData,
   NPCDamageData,
   TagDataShort,
+  LancerActorData,
 } from "./interfaces";
 // Import JSON data
 import { DamageType, IDamageData, NpcFeatureType } from "machine-mind";
@@ -39,20 +40,20 @@ const lp = LANCER.log_prefix;
  */
 export async function prepareItemMacro(a: string, i: string, options?: any) {
   // Determine which Actor to speak as
-  let actor: Actor | null = getMacroSpeaker(a);
+  let actor: LancerActor | null = getMacroSpeaker(a);
   if (!actor) {
-    ui.notifications.warn(`Failed to find Actor for macro. Do you need to select a token?`);
+    ui.notifications!.warn(`Failed to find Actor for macro. Do you need to select a token?`);
     return null;
   }
 
   // Get the item
   const item: LancerItem | null = actor.getOwnedItem(i) as LancerItem | null;
   if (!item) {
-    return ui.notifications.error(
+    return ui.notifications?.error(
       `Error preparing macro: could not find Item ${i} owned by Actor ${a}.`
     );
   } else if (!item.isOwned) {
-    return ui.notifications.error(`Error preparing macro: ${item.name} is not owned by an Actor.`);
+    return ui.notifications?.error(`Error preparing macro: ${item.name} is not owned by an Actor.`);
   }
 
   switch (item.data.type) {
@@ -144,7 +145,7 @@ export async function prepareItemMacro(a: string, i: string, options?: any) {
       break;
     default:
       console.log("No macro exists for that item type");
-      return ui.notifications.error(`Error - No macro exists for that item type`);
+      return ui.notifications!.error(`Error - No macro exists for that item type`);
   }
 }
 
@@ -152,40 +153,40 @@ export function getMacroSpeaker(a_id?: string): LancerActor | null {
   // Determine which Actor to speak as
   const speaker = ChatMessage.getSpeaker();
   // console.log(`${lp} Macro speaker`, speaker);
-  let actor: Actor | undefined = undefined;
+  let actor: LancerActor | undefined;
   // console.log(game.actors.tokens);
   try {
     if (speaker.token) {
-      actor = (game.actors.tokens[speaker.token] as unknown) as Actor;
+      actor = game.actors!.tokens[speaker.token] as LancerActor;
     }
   } catch (TypeError) {
     // Need anything here?
   }
-  if (!actor) {
-    actor = game.actors.get(speaker.actor, { strict: false });
+  if (!actor && speaker.actor) {
+    actor = game.actors!.get(speaker.actor, { strict: false });
   }
   if (!actor || (a_id && actor.id !== a_id)) {
-    actor = game.actors.get(a_id!);
+    actor = game.actors!.get(a_id!);
   }
-  return actor ? <LancerActor>actor : null;
+  return actor ?? null;
 }
 
 export async function renderMacro(actor: Actor, template: string, templateData: any) {
   const html = await renderTemplate(template, templateData);
   let roll = templateData.roll || templateData.attack;
   let chat_data = {
-    user: game.user,
+    user: game.user!,
     type: roll ? CONST.CHAT_MESSAGE_TYPES.ROLL : CONST.CHAT_MESSAGE_TYPES.IC,
     roll: roll,
     speaker: {
       actor: actor,
       token: actor.token,
-      alias: actor.token ? actor.token.name : null,
+      alias: actor.token?.name,
     },
     content: html,
   };
   let cm = await ChatMessage.create(chat_data);
-  cm.render();
+  cm?.render();
   return Promise.resolve();
 }
 
@@ -194,14 +195,14 @@ function getMacroActorItem(a: string, i: string): { actor: Actor | null; item: I
   // Find the Actor for a macro to speak as
   result.actor = getMacroSpeaker(a);
   if (!result.actor) {
-    ui.notifications.warn(`Failed to find Actor for macro. Do you need to select a token?`);
+    ui.notifications?.warn(`Failed to find Actor for macro. Do you need to select a token?`);
     return result;
   }
 
   // Find the item
   result.item = result.actor.getOwnedItem(i) as Item | null;
   if (!result.item) {
-    ui.notifications.warn(`Failed to find Item for macro.`);
+    ui.notifications?.warn(`Failed to find Item for macro.`);
     return result;
   }
   return result;
@@ -312,12 +313,18 @@ async function rollTalentMacro(actor: Actor, data: LancerTalentMacroData) {
  *            - damBonus        Object of form {type: val} to apply flat damage bonus of given type. 
  *                              The "Bonus" type is recommended but not required
  */
-async function prepareAttackMacro({ actor, item, options }: 
-    { actor: Actor;
-      item: LancerItem; 
-      options?: { 
-        accBonus: number; 
-        damBonus: { type: DamageType; val: number; }; }; }) {
+async function prepareAttackMacro({
+  actor,
+  item,
+  options,
+}: {
+  actor: LancerActor;
+  item: LancerItem;
+  options?: {
+    accBonus: number;
+    damBonus: { type: DamageType; val: number };
+  };
+}) {
   let mData: LancerAttackMacroData = {
     title: item.name,
     grit: 0,
@@ -339,7 +346,7 @@ async function prepareAttackMacro({ actor, item, options }:
     const wData = item.data.data as LancerNPCWeaponData;
     let tier: number;
     if (item.actor === null) {
-      tier = actor.data.data.tier_num;
+      tier = (<LancerNPCData>actor.data.data).tier_num;
     } else {
       tier = (item.actor.data.data as LancerNPCData).tier_num - 1;
     }
@@ -355,7 +362,7 @@ async function prepareAttackMacro({ actor, item, options }:
     mData.on_hit = wData.on_hit ? wData.on_hit : undefined;
     mData.effect = wData.effect ? wData.effect : "";
   } else {
-    ui.notifications.error(`Error preparing attack macro - ${item.name} is not a weapon!`);
+    ui.notifications?.error(`Error preparing attack macro - ${item.name} is not a weapon!`);
     return Promise.resolve();
   }
 
@@ -365,23 +372,25 @@ async function prepareAttackMacro({ actor, item, options }:
   });
   // Warn about missing damage type if the value is non-zero
   if (typeMissing) {
-    ui.notifications.warn(`Warning: ${item.name} has a damage value without type!`);
+    ui.notifications?.warn(`Warning: ${item.name} has a damage value without type!`);
   }
 
   // Options processing
-  if(options) {
-    if(options.accBonus) {
+  if (options) {
+    if (options.accBonus) {
       mData.grit += options.accBonus;
     }
-    if(options.damBonus) {
-      let i = mData.damage.findIndex((dam: IDamageData) => {return dam.type === options.damBonus.type});
-      if(i >= 0) {
+    if (options.damBonus) {
+      let i = mData.damage.findIndex((dam: IDamageData) => {
+        return dam.type === options.damBonus.type;
+      });
+      if (i >= 0) {
         // We need to clone so it doesn't go all the way back up to the weapon
-        let damClone = {...mData.damage[i]};
-        if(damClone.val > 0) {
+        let damClone = { ...mData.damage[i] };
+        if (damClone.val > 0) {
           damClone.val = `${damClone.val}+${options.damBonus.val}`;
         } else {
-          damClone.val = options.damBonus.val
+          damClone.val = options.damBonus.val;
         }
         mData.damage[i] = damClone;
       } else {
@@ -393,7 +402,7 @@ async function prepareAttackMacro({ actor, item, options }:
   await rollAttackMacro(actor, mData).then();
 }
 
-async function rollAttackMacro(actor: Actor, data: LancerAttackMacroData) {
+async function rollAttackMacro(actor: LancerActor, data: LancerAttackMacroData) {
   let atk_str = await buildAttackRollString(data.title, data.acc, data.grit);
   if (!atk_str) return;
   let attack_roll = new Roll(atk_str).roll();
@@ -440,9 +449,9 @@ async function rollAttackMacro(actor: Actor, data: LancerAttackMacroData) {
     if (data.overkill && droll) {
       // Count overkill heat
       droll.terms.forEach(p => {
-      // @ts-ignore Roll needs updating TODO
+        // @ts-ignore Roll needs updating TODO
         if (p.results && Array.isArray(p.results)) {
-      // @ts-ignore ^ TODO
+          // @ts-ignore ^ TODO
           p.results.forEach((r: any) => {
             if (r.exploded) {
               overkill_heat += 1;
@@ -464,7 +473,7 @@ async function rollAttackMacro(actor: Actor, data: LancerAttackMacroData) {
     game.settings.get(LANCER.sys_name, LANCER.setting_automation) &&
     game.settings.get(LANCER.sys_name, LANCER.setting_overkill_heat)
   ) {
-    const a_data: LancerPilotActorData = duplicate(actor.data);
+    const a_data = duplicate<LancerActorData, "lenient">(actor.data);
     if (a_data.type === "pilot") {
       a_data.data.mech.heat.value += overkill_heat;
     }
@@ -591,11 +600,11 @@ export async function prepareTechMacro(a: string, t: string) {
   // Get the item
   const item: LancerItem | null = actor.getOwnedItem(t) as LancerItem | null;
   if (!item) {
-    return ui.notifications.error(
+    return ui.notifications?.error(
       `Error preparing tech attack macro - could not find Item ${t} owned by Actor ${a}! Did you add the Item to the token, instead of the source Actor?`
     );
   } else if (!item.isOwned) {
-    return ui.notifications.error(
+    return ui.notifications?.error(
       `Error rolling tech attack macro - ${item.name} is not owned by an Actor!`
     );
   }
@@ -626,7 +635,7 @@ export async function prepareTechMacro(a: string, t: string) {
     mData.tags = tData.tags;
     mData.effect = tData.effect ? tData.effect : "";
   } else {
-    ui.notifications.error(
+    ui.notifications?.error(
       `Error rolling tech attack macro - ${item.name} does not a tech attack!`
     );
     return Promise.resolve();
@@ -703,13 +712,13 @@ export async function prepareOverchargeMacro(a: string) {
   // Determine which Actor to speak as
   let actor: LancerActor | null = getMacroSpeaker(a);
   if (!actor) {
-    ui.notifications.warn(`Failed to find Actor for macro. Do you need to select a token?`);
+    ui.notifications?.warn(`Failed to find Actor for macro. Do you need to select a token?`);
     return null;
   }
 
   // Validate that we're overcharging a pilot
   if (actor.data.type !== "pilot") {
-    ui.notifications.warn(`Only pilots can overcharge!`);
+    ui.notifications?.warn(`Only pilots can overcharge!`);
     return null;
   }
 
@@ -720,7 +729,7 @@ export async function prepareOverchargeMacro(a: string) {
   // And here too... we should probably revisit our type definitions...
   let rollText = actor.getOverchargeRoll();
   if (!rollText) {
-    ui.notifications.warn(`Error in getting overcharge roll...`);
+    ui.notifications?.warn(`Error in getting overcharge roll...`);
     return null;
   }
 
@@ -740,7 +749,7 @@ export async function prepareOverchargeMacro(a: string) {
     game.settings.get(LANCER.sys_name, LANCER.setting_automation) &&
     game.settings.get(LANCER.sys_name, LANCER.setting_pilot_oc_heat)
   ) {
-    data.data.mech.heat.value = data.data.mech.heat.value + roll.total;
+    data.data.mech.heat.value = data.data.mech.heat.value + (roll.total ?? 0);
   }
 
   console.log(roll, data);
@@ -773,12 +782,12 @@ export async function prepareOverheatMacro(a: string) {
   // Determine which Actor to speak as
   let actor: LancerActor | null = getMacroSpeaker(a);
   if (!actor) {
-    ui.notifications.warn(`Failed to find Actor for macro. Do you need to select a token?`);
+    ui.notifications?.warn(`Failed to find Actor for macro. Do you need to select a token?`);
     return null;
   }
 
   if (!("mech" in actor.data.data)) {
-    ui.notifications.error("Selected token is not a mech");
+    ui.notifications?.error("Selected token is not a mech");
     return;
   }
 
@@ -794,12 +803,12 @@ export async function prepareStructureMacro(a: string) {
   // Determine which Actor to speak as
   let actor: LancerActor | null = getMacroSpeaker(a);
   if (!actor) {
-    ui.notifications.warn(`Failed to find Actor for macro. Do you need to select a token?`);
+    ui.notifications?.warn(`Failed to find Actor for macro. Do you need to select a token?`);
     return null;
   }
 
   if (!("mech" in actor.data.data)) {
-    ui.notifications.error("Selected token is not a mech");
+    ui.notifications?.error("Selected token is not a mech");
     return;
   }
 

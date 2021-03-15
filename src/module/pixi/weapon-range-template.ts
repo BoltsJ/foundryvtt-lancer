@@ -16,10 +16,21 @@ export class WeaponRangeTemplate extends MeasuredTemplate {
   isBurst: boolean;
   range: { val: number; type: string };
 
-  constructor(params: any) {
-    super(params);
-    this.isBurst = params.isBurst;
-    this.range = params.range;
+  constructor(
+    data: DeepPartial<
+      MeasuredTemplate.Data & {
+        isBurst: boolean;
+        range: WeaponRangeTemplate["range"];
+      }
+    >
+  ) {
+    super(data);
+    this.isBurst = data.isBurst ?? false;
+    this.range = {
+      type: "",
+      val: 0,
+      ...data.range,
+    };
   }
 
   /**
@@ -28,9 +39,10 @@ export class WeaponRangeTemplate extends MeasuredTemplate {
    * @param val Size of template
    */
   static fromRange({ type, val }: { type: string; val: number }): WeaponRangeTemplate | null {
+    if (!canvas?.ready) return null;
     let hex: boolean = canvas.grid.type >= 2;
 
-    let shape: string;
+    let shape: MeasuredTemplate["data"]["t"];
     switch (type) {
       case "Cone":
         shape = "cone";
@@ -49,15 +61,14 @@ export class WeaponRangeTemplate extends MeasuredTemplate {
     const scale = hex ? Math.sqrt(3) / 2 : 1;
     const templateData = {
       t: shape,
-      user: game.user._id,
+      user: game.user?.id,
       distance: (val + 0.1) * scale,
       width: scale,
       direction: 0,
       x: 0,
       y: 0,
       angle: 58,
-      // @ts-ignore User.color getter missing TODO
-      fillColor: game.user.color,
+      fillColor: game.user!.color,
       isBurst: type === "Burst",
       range: { type, val },
     };
@@ -69,19 +80,19 @@ export class WeaponRangeTemplate extends MeasuredTemplate {
    * block until a template is placed.
    */
   drawPreview(): void {
+    if (!canvas?.ready || !canvas.activeLayer) return;
     const initialLayer = canvas.activeLayer;
     this.draw();
     this.layer.activate();
-    // @ts-ignore PlaceableObject.addChild missing or PlaceablesLayer.preview wrong type TODO
     this.layer.preview.addChild(this);
     this.activatePreviewListeners(initialLayer);
   }
 
-  activatePreviewListeners(initialLayer: any): void {
-    const handlers: any = {};
+  activatePreviewListeners(initialLayer: CanvasLayer): void {
+    const handlers: Record<string, (...args: any[]) => void> = {};
     let moveTime = 0;
     // Update placement (mouse-move)
-    handlers.mm = (event: any) => {
+    handlers.mm = (event: PIXI.InteractionEvent) => {
       event.stopPropagation();
       let now = Date.now(); // Apply a 20ms throttle
       if (now - moveTime <= 20) return;
@@ -97,7 +108,7 @@ export class WeaponRangeTemplate extends MeasuredTemplate {
 
     // Cancel the workflow (right-click)
     handlers.rc = () => {
-      // @ts-ignore PlaceableObject.removeChildren missing or PlaceablesLayer.preview wrong type TODO
+      if (!canvas?.ready) return;
       this.layer.preview.removeChildren();
       canvas.stage.off("mousemove", handlers.mm);
       canvas.stage.off("mousedown", handlers.lc);
@@ -107,15 +118,17 @@ export class WeaponRangeTemplate extends MeasuredTemplate {
     };
 
     // Confirm the workflow (left-click)
-    handlers.lc = (event: any) => {
+    handlers.lc = (event: MouseEvent) => {
+      if (!canvas?.ready) return;
       handlers.rc(event);
 
       // Create the template
-      canvas.scene.createEmbeddedEntity("MeasuredTemplate", this.data);
+      canvas.scene!.createEmbeddedEntity("MeasuredTemplate", this.data);
     };
 
     // Rotate the template by 3 degree increments (mouse-wheel)
-    handlers.mw = (event: any) => {
+    handlers.mw = (event: WheelEvent) => {
+      if (!canvas?.ready) return;
       if (event.ctrlKey) event.preventDefault(); // Avoid zooming the browser window
       event.stopPropagation();
       let delta = canvas.grid.type > CONST.GRID_TYPES.SQUARE ? 30 : 15;
@@ -125,6 +138,7 @@ export class WeaponRangeTemplate extends MeasuredTemplate {
     };
 
     // Activate listeners
+    if (!canvas?.ready) return;
     canvas.stage.on("mousemove", handlers.mm);
     canvas.stage.on("mousedown", handlers.lc);
     canvas.app.view.oncontextmenu = handlers.rc;
@@ -134,7 +148,8 @@ export class WeaponRangeTemplate extends MeasuredTemplate {
   /**
    * Snapping function to only snap to the center of spaces rather than corners.
    */
-  snapToCenter({ x, y }: { x: number; y: number }): { x: number; y: number } {
+  snapToCenter({ x, y }: Point): { x: number; y: number } {
+    if (!canvas?.ready) throw new Error("Canvas not set up");
     const snapped = canvas.grid.getCenter(x, y);
     return { x: snapped[0], y: snapped[1] };
   }
@@ -143,13 +158,15 @@ export class WeaponRangeTemplate extends MeasuredTemplate {
    * Snapping function to snap to the center of a hovered token. Also resizes
    * the template for bursts.
    */
-  snapToToken({ x, y }: { x: number; y: number }): { x: number; y: number } {
+  snapToToken({ x, y }: Point): { x: number; y: number } {
+    if (!canvas?.ready) throw new Error("Canvas not set up");
     const token = canvas.tokens.placeables
-      .filter((t: any) => {
+      .filter(t => {
         // test if cursor is inside token
         return t.x < x && t.x + t.w > x && t.y < y && t.y + t.h > y;
       })
-      .reduce((r: any | null, t: any) => {
+      .reduce((r: Token | null, t: Token) => {
+        if (!canvas?.ready) throw new Error("Canvas not set up");
         // skip hidden tokens
         if (!t.visible) return r;
         // use the token that is closest.
@@ -174,6 +191,7 @@ export class WeaponRangeTemplate extends MeasuredTemplate {
    * Get fine-tuned sizing data for Burst templates
    */
   getBurstDistance(size: number): number {
+    if (!canvas?.ready) throw new Error("Canvas not set up");
     const hex = canvas.grid.type > 1;
     const scale = hex ? Math.sqrt(3) / 2 : 1;
     let val = this.range.val;

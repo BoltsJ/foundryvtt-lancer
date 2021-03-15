@@ -3,6 +3,7 @@ import { LANCER } from "../config";
 import { NPCFeatureIcons } from "./npc-feature";
 import { ActivationType, ChargeType, DamageType, EffectType, NpcFeatureType } from "machine-mind";
 import { ChargeData, ChargeEffectData } from "./effects";
+import { LancerItem, LancerItemData } from "./lancer-item";
 
 const lp = LANCER.log_prefix;
 
@@ -10,14 +11,13 @@ const lp = LANCER.log_prefix;
  * Extend the basic ItemSheet with some very simple modifications
  * @extends {ItemSheet}
  */
-export class LancerItemSheet extends ItemSheet {
+export class LancerItemSheet<D extends ItemSheet.Data<LancerItem> = ItemSheet.Data<LancerItem>> extends ItemSheet<D, LancerItem> {
   /**
    * @override
    * Extend and override the default options used by the Item Sheet
-   * @returns {Object}
    */
   static get defaultOptions() {
-    return mergeObject(super.defaultOptions, {
+    return{ ...super.defaultOptions, 
       classes: ["lancer", "sheet", "item"],
       width: 700,
       height: 480,
@@ -28,7 +28,7 @@ export class LancerItemSheet extends ItemSheet {
           initial: "description",
         },
       ],
-    });
+    };
   }
 
   /** @override */
@@ -44,12 +44,12 @@ export class LancerItemSheet extends ItemSheet {
    * Prepare data for rendering the Item sheet
    * The prepared data object contains both the item data as well as additional sheet options
    */
-  getData(): ItemSheetData {
-    const data: ItemSheetData = super.getData() as ItemSheetData;
+  getData(): D {
+    const data: any = <D>super.getData();
 
-    if (!data.item) {
+    if (!data.item) { // Can this even happen?
       // Just junk it
-      return {};
+      return {} as D;
     }
 
     if (data.item.type === "npc_feature" && data.data.feature_type === NpcFeatureType.Weapon) {
@@ -139,11 +139,12 @@ export class LancerItemSheet extends ItemSheet {
    * @param event    The originating event
    * @private
    */
-  async _onSelectDelete(event: any) {
+  async _onSelectDelete(event: JQuery.ChangeEvent<HTMLElement, undefined, HTMLElement, HTMLElement>) {
     const s = $(event.currentTarget);
     if (s.val() === "delete") {
       event.preventDefault();
-      const itemString = s.data("item");
+      const itemString = s.data("item"); // TODO: Figure out whot this actually is
+      // @ts-ignore HTML was a mistake
       const itemArr = duplicate(this["object"]["data"]["data"][itemString]);
       const parent = s.parents(".arrayed-item");
       const id = parent.data("key");
@@ -212,7 +213,7 @@ export class LancerItemSheet extends ItemSheet {
   /* -------------------------------------------- */
 
   /** @override */
-  _updateObject(event: any, formData: any) {
+  _updateObject(event: any, formData: any): Promise<LancerItem> {
     formData = LancerItemSheet.arrayifyTags(formData, "data.tags");
     formData = LancerItemSheet.arrayifyTags(formData, "data.core_system.tags");
     formData = LancerItemSheet.arrayifyTags(formData, "data.traits");
@@ -276,10 +277,10 @@ export class LancerItemSheet extends ItemSheet {
         // Sanity check to make sure it's all paired
         if(rangeKeys.length % 2 || damKeys.length % 2) {
           console.log("Error updating range/damage");
-          ui.notifications.error(
+          ui.notifications?.error(
             `Warning: Error updating item range/damage. Please report this`
           );
-          return;
+          return Promise.resolve(this.item);
         }
 
         var newDamage: {[index:string]:Array<object>} = {};

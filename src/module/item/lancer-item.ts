@@ -126,6 +126,7 @@ export class LancerItem extends Item<
     | LancerNPCTemplateItemData
     | LancerNPCClassItemData
     > {
+  [x: string]: any;
 
   // ============================================================
   //          SKILLS

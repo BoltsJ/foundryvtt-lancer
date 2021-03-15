@@ -3,7 +3,7 @@ import { CompendiumCategory, CompendiumItem, ItemType, MountType, store } from "
 import { LancerActor } from "./lancer-actor";
 import { LancerMechWeaponData, LancerMechWeaponItemData, LancerMountData, LancerPilotActorData } from "../interfaces";
 import { ItemDataManifest, MachineMind_pilot_to_VTT_items_compendium_lookup, MachineMind_to_VTT_data } from "../item/util";
-import { LancerItem, LancerMechWeapon } from "../item/lancer-item";
+import { LancerItem, LancerItemData, LancerMechWeapon } from "../item/lancer-item";
 
 export async function import_pilot_by_code(code: string): Promise<mm.Pilot> {
   let data = await mm.loadPilot(code);
@@ -27,7 +27,7 @@ export async function update_pilot(pilot: LancerActor, cc_pilot: mm.Pilot): Prom
 
   if (items.errors.length) {
     for (let e of items.errors) {
-      ui.notifications.warn(e);
+      ui.notifications?.warn(e);
     }
     // Escape
     return;
@@ -39,7 +39,7 @@ export async function update_pilot(pilot: LancerActor, cc_pilot: mm.Pilot): Prom
   }
 
   // Do some pre-editing before owning
-  let item_data = items.items.map(i => duplicate(i.data));
+  let item_data = items.items.map(i => duplicate(i.data)) as LancerItemData[];
   let item_data_sorted = new ItemDataManifest().add_items(item_data);
 
   for (let talent of item_data_sorted.talents) {

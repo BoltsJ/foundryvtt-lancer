@@ -1,4 +1,4 @@
 export class LancerGame extends Game {
   // Create a lancer namespace
-  lancer!: object;
+  lancer!: any; // TODO: Create a type for this
 }

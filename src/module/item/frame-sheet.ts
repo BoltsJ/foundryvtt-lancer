@@ -1,19 +1,21 @@
+import { LancerFrameSheetData, TagData } from "../interfaces";
 import { LancerItemSheet } from "./item-sheet";
 
 /**
  * Extend the generic Lancer item sheet
  * @extends {LancerItemSheet}
  */
-export class LancerFrameSheet extends LancerItemSheet {
+export class LancerFrameSheet extends LancerItemSheet<LancerFrameSheetData> {
   /**
    * @override
    * Extend and override the default options used by the generic Lancer item sheet
    */
   static get defaultOptions() {
-    return mergeObject(super.defaultOptions, {
+    return {
+      ...super.defaultOptions,
       width: 700,
       height: 750,
-    });
+    };
   }
 
   /**
@@ -22,11 +24,12 @@ export class LancerFrameSheet extends LancerItemSheet {
    * @param event The click event
    */
   async _onClickTagControl(event: any) {
+    if (this.object.data.type !== "frame") return;
     event.preventDefault();
     const a = $(event.currentTarget);
     const action = a.data("action");
     console.log(this);
-    const tags = duplicate(this.object.data.data.core_system.tags);
+    const tags: Partial<TagData>[] = duplicate<TagData[], "lenient">(this.object.data.data.core_system.tags);
 
     console.log("_onClickTagControl()", action, tags);
     if (action === "create") {
@@ -48,8 +51,9 @@ export class LancerFrameSheet extends LancerItemSheet {
       const parent = a.parents(".tag");
       const id = parent.data("key");
       delete tags[id];
+      // @ts-ignore idk what this is
       tags["-=" + id] = null;
-      this.object.update({ "data.core_system.tags": tags }, {});
+      await this.object.update({ "data.core_system.tags": tags }, {});
     }
   }
 
@@ -59,7 +63,7 @@ export class LancerFrameSheet extends LancerItemSheet {
    * The prepared data object contains both the item data as well as additional sheet options
    */
   getData() {
-    const data: ItemSheetData = super.getData();
+    const data = super.getData();
 
     // TODO: frame size
 

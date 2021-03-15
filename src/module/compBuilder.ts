@@ -90,7 +90,7 @@ export async function clearCompendiums(): Promise<void> {
   await unlockAllPacks();
   for (let p of PACKS) {
     let pack: Compendium | undefined;
-    pack = game.packs.get(`world.${p}`);
+    pack = game.packs!.get(`world.${p}`);
 
     if (pack) {
       // Delete every item in the pack
@@ -105,14 +105,14 @@ export async function clearCompendiums(): Promise<void> {
   return Promise.resolve();
 }
 
-async function findPack(pack_name: string, metaData: object): Promise<Compendium> {
+async function findPack(pack_name: string, metaData: Compendium.Metadata): Promise<Compendium> {
   let pack: Compendium | undefined;
 
   // Find existing world compendium
-  pack = game.packs.get(`world.${pack_name}`);
+  pack = game.packs!.get(`world.${pack_name}`);
   if (!pack) {
     // World compendium doesn't exist, attempt to find a system compendium
-    pack = game.packs.get(`lancer.${pack_name}`);
+    pack = game.packs!.get(`lancer.${pack_name}`);
   }
   if (pack) {
     console.log(`${lp} Updating existing compendium: ${pack.collection}.`);
@@ -144,13 +144,13 @@ async function updateItem(
     | LancerNPCClassData,
   type: string,
   img: string
-): Promise<Entity> {
+) {
   let item = content.find(e => e.data.data.id === newData.id);
 
   // The item already exists in the pack, update its data.
   if (item) {
     console.log(`LANCER | Updating ${type} ${item.name} in compendium ${pack.collection}`);
-    let d: any = item.data;
+    let d = item.data;
     d.name = newData.name;
     d.img = img;
     d.data = newData;
@@ -174,13 +174,13 @@ async function buildSkillCompendium(conv: Converter, cp: ContentPack) {
   const skills = cp.Skills;
   const p_name = SKILLS_PACK;
   const img = "systems/lancer/assets/icons/skill.svg";
-  const metaData: Object = {
+  const metaData = {
     name: p_name,
     label: "Skill Triggers",
     system: "lancer",
     package: "world",
     path: "./packs/skills.db",
-    entity: "Item",
+    entity: "Item" as const,
   };
   let pack: Compendium = await findPack(p_name, metaData);
   let content = (await pack.getContent()) as LancerItem[];
@@ -196,13 +196,13 @@ async function buildTalentCompendium(conv: Converter, cp: ContentPack) {
   const talents = cp.Talents;
   const p_name = TALENTS_PACK;
   const img = "systems/lancer/assets/icons/talent.svg";
-  const metaData: Object = {
+  const metaData = {
     name: p_name,
     label: "Talents",
     system: "lancer",
     package: "world",
     path: "./packs/talents.db",
-    entity: "Item",
+    entity: "Item" as const,
   };
   let pack: Compendium = await findPack(p_name, metaData);
   let content = (await pack.getContent()) as LancerItem[];
@@ -218,13 +218,13 @@ async function buildCoreBonusCompendium(conv: Converter, cp: ContentPack) {
   const coreBonus = cp.CoreBonuses;
   const p_name = CORE_BONUS_PACK;
   const img = "systems/lancer/assets/icons/corebonus.svg";
-  const metaData: Object = {
+  const metaData = {
     name: p_name,
     label: "Core Bonuses",
     system: "lancer",
     package: "world",
     path: "./packs/core_bonuses.db",
-    entity: "Item",
+    entity: "Item" as const,
   };
   let pack: Compendium = await findPack(p_name, metaData);
   let content = (await pack.getContent()) as LancerItem[];
@@ -247,31 +247,31 @@ async function buildPilotEquipmentCompendiums(conv: Converter, cp: ContentPack) 
   const armorImg = "systems/lancer/assets/icons/shield_outline.svg";
   const weaponImg = "systems/lancer/assets/icons/weapon.svg";
   const gearImg = "systems/lancer/assets/icons/generic_item.svg";
-  const armorMeta: Object = {
+  const armorMeta = {
     name: paName,
     label: "Pilot Armor",
     system: "lancer",
     package: "world",
     path: "./packs/pilot_armor.db",
-    entity: "Item",
+    entity: "Item" as const,
   };
   let paPack: Compendium = await findPack(paName, armorMeta);
-  const weaponMeta: Object = {
+  const weaponMeta = {
     name: pwName,
     label: "Pilot Weapons",
     system: "lancer",
     package: "world",
     path: "./packs/pilot_weapons.db",
-    entity: "Item",
+    entity: "Item" as const,
   };
   let pwPack: Compendium = await findPack(pwName, weaponMeta);
-  const gearMeta: Object = {
+  const gearMeta = {
     name: pgName,
     label: "Pilot Gear",
     system: "lancer",
     package: "world",
     path: "./packs/pilot_gear.db",
-    entity: "Item",
+    entity: "Item" as const,
   };
   let pgPack: Compendium = await findPack(pgName, gearMeta);
   let paContent = (await paPack.getContent()) as LancerItem[];
@@ -313,13 +313,13 @@ async function buildFrameCompendium(conv: Converter, cp: ContentPack) {
   const frames = cp.Frames;
   const p_name = FRAME_PACK;
   const img = "systems/lancer/assets/icons/frame.svg";
-  const metaData: Object = {
+  const metaData = {
     name: p_name,
     label: "Frames",
     system: "lancer",
     package: "world",
     path: "./packs/frames.db",
-    entity: "Item",
+    entity: "Item" as const,
   };
   let pack: Compendium = await findPack(p_name, metaData);
   let content = (await pack.getContent()) as LancerItem[];
@@ -348,13 +348,13 @@ async function buildMechSystemCompendium(conv: Converter, cp: ContentPack) {
   const systems = cp.MechSystems;
   const p_name = MECH_SYSTEM_PACK;
   const img = "systems/lancer/assets/icons/mech_system.svg";
-  const metaData: Object = {
+  const metaData = {
     name: p_name,
     label: "Systems",
     system: "lancer",
     package: "world",
     path: "./packs/systems.db",
-    entity: "Item",
+    entity: "Item" as const,
   };
   let pack: Compendium = await findPack(p_name, metaData);
   let content = (await pack.getContent()) as LancerItem[];
@@ -376,13 +376,13 @@ async function buildMechWeaponCompendium(conv: Converter, cp: ContentPack) {
   const weapons = cp.MechWeapons;
   const p_name = MECH_WEAPON_PACK;
   const img = "systems/lancer/assets/icons/mech_weapon.svg";
-  const metaData: Object = {
+  const metaData = {
     name: p_name,
     label: "Weapons",
     system: "lancer",
     package: "world",
     path: "./packs/weapons.db",
-    entity: "Item",
+    entity: "Item" as const,
   };
   let pack: Compendium = await findPack(p_name, metaData);
   let content = (await pack.getContent()) as LancerItem[];
@@ -408,13 +408,13 @@ async function buildNPCClassCompendium(conv: Converter, cp: ContentPack) {
   const npcClasses = cp.NpcClasses;
   const p_name = NPC_CLASS_PACK;
   const img = "systems/lancer/assets/icons/npc_class.svg";
-  const metaData: Object = {
+  const metaData = {
     name: p_name,
     label: "NPC Classes",
     system: "lancer",
     package: "world",
     path: "./packs/npc_classes.db",
-    entity: "Item",
+    entity: "Item" as const,
   };
   let pack: Compendium = await findPack(p_name, metaData);
   let content = (await pack.getContent()) as LancerItem[];
@@ -430,13 +430,13 @@ async function buildNPCTemplateCompendium(conv: Converter, cp: ContentPack) {
   const npcTemplates = cp.NpcTemplates;
   const p_name = NPC_TEMPLATE_PACK;
   const img = "systems/lancer/assets/icons/npc_template.svg";
-  const metaData: Object = {
+  const metaData = {
     name: p_name,
     label: "NPC Templates",
     system: "lancer",
     package: "world",
     path: "./packs/npc_templates.db",
-    entity: "Item",
+    entity: "Item" as const,
   };
   let pack: Compendium = await findPack(p_name, metaData);
   let content = (await pack.getContent()) as LancerItem[];
@@ -458,13 +458,13 @@ async function buildNPCFeatureCompendium(conv: Converter, cp: ContentPack) {
   const npcFeatures = cp.NpcFeatures;
   const p_name = NPC_FEATURE_PACK;
   const img = "systems/lancer/assets/icons/npc_feature.svg";
-  const metaData: Object = {
+  const metaData = {
     name: p_name,
     label: "NPC Features",
     system: "lancer",
     package: "world",
     path: "./packs/npc_features.db",
-    entity: "Item",
+    entity: "Item" as const,
   };
   let pack: Compendium = await findPack(p_name, metaData);
   let content = (await pack.getContent()) as LancerItem[];

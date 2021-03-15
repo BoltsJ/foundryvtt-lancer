@@ -1,5 +1,7 @@
 import {
+  LancerFrameItemData,
   LancerFrameStatsData,
+  LancerMechWeaponItemData,
   LancerMountData,
   LancerPilotData,
   LancerPilotSheetData,
@@ -25,6 +27,7 @@ import { MountType } from "machine-mind";
 import { import_pilot_by_code, update_pilot } from "./util";
 import { LancerActorSheet } from "./lancer-actor-sheet";
 import { prepareCoreActiveMacro, prepareCorePassiveMacro } from "../macros";
+import { LancerGame } from "../lancer-game";
 
 const lp = LANCER.log_prefix;
 
@@ -34,7 +37,7 @@ const entryPrompt = "//:AWAIT_ENTRY>";
 /**
  * Extend the basic ActorSheet
  */
-export class LancerPilotSheet extends LancerActorSheet {
+export class LancerPilotSheet extends LancerActorSheet<LancerPilotSheetData> {
   /**
    * A convenience reference to the Actor entity
    */
@@ -46,10 +49,10 @@ export class LancerPilotSheet extends LancerActorSheet {
 
   /**
    * Extend and override the default options used by the Pilot Sheet
-   * @returns {Object}
    */
-  static get defaultOptions(): object {
-    return mergeObject(super.defaultOptions, {
+  static get defaultOptions() {
+    return {
+      ...super.defaultOptions,
       classes: ["lancer", "sheet", "actor", "pilot"],
       template: "systems/lancer/templates/actor/pilot.html",
       width: 800,
@@ -61,7 +64,7 @@ export class LancerPilotSheet extends LancerActorSheet {
           initial: "mech",
         },
       ],
-    });
+    };
   }
 
   /* -------------------------------------------- */
@@ -70,9 +73,9 @@ export class LancerPilotSheet extends LancerActorSheet {
    * Prepare data for rendering the Actor sheet
    * The prepared data object contains both the actor data as well as additional sheet options
    */
-  // @ts-ignore LancerPilotSheetData and ActorSheetData<any> are incompatible types TODO
   getData(): LancerPilotSheetData {
-    // @ts-ignore LancerPilotSheetData and ActorSheetData<any> are incompatible types TODO
+    if (!(this.actor.data.type === "pilot"))
+      throw new Error(`Bad sheet configuration for actor ${this.actor.id}`);
     const data: LancerPilotSheetData = super.getData() as LancerPilotSheetData;
 
     this._prepareItems(data);
@@ -184,46 +187,49 @@ export class LancerPilotSheet extends LancerActorSheet {
       // Overcharge text
       let overchargeText = html.find(".overcharge-text");
 
-      overchargeText.on("click", (ev: Event) => {
-        this._setOverchargeLevel(
-          <MouseEvent>ev,
-          Math.min(this.actor.data.data.mech.overcharge_level + 1, 3)
-        );
+      overchargeText.on("click", ev => {
+        if (!(this.actor.data.type === "pilot"))
+          throw new Error(`Bad sheet configuration for actor ${this.actor.id}`);
+        this._setOverchargeLevel(ev, Math.min(this.actor.data.data.mech.overcharge_level + 1, 3));
       });
 
       // Overcharge reset
       let overchargeReset = html.find(".overcharge-reset");
 
-      overchargeReset.on("click", (ev: Event) => {
-        this._setOverchargeLevel(<MouseEvent>ev, 0);
+      overchargeReset.on("click", ev => {
+        this._setOverchargeLevel(ev, 0);
       });
 
       // Overcharge macro
       let overchargeMacro = html.find(".overcharge-macro");
 
       overchargeMacro.on("click", () => {
-        game.lancer.prepareOverchargeMacro(this.actor._id);
+        (<LancerGame>game).lancer.prepareOverchargeMacro(this.actor._id);
       });
 
       // Macro triggers
       // Stat rollers
       let statMacro = html.find(".roll-stat");
-      statMacro.on("click", (ev: Event) => {
+      statMacro.on("click", ev => {
         ev.stopPropagation(); // Avoids triggering parent event handlers
-        game.lancer.prepareStatMacro(this.actor._id, this.getStatPath(ev)!);
+        (<LancerGame>game).lancer.prepareStatMacro(this.actor._id, this.getStatPath(ev)!);
       });
 
       // Talent rollers
       let talentMacro = html.find(".talent-macro");
-      talentMacro.on("click", (ev: Event) => {
+      talentMacro.on("click", ev => {
         if (!ev.currentTarget) return; // No target, let other handlers take care of it.
         ev.stopPropagation(); // Avoids triggering parent event handlers
 
         const el = $(ev.currentTarget).closest(".item")[0] as HTMLElement;
 
-        game.lancer.prepareItemMacro(this.actor._id, el.getAttribute("data-item-id")!, {
-          rank: (<HTMLDataElement>ev.currentTarget).getAttribute("data-rank"),
-        });
+        (<LancerGame>game).lancer.prepareItemMacro(
+          this.actor._id,
+          el.getAttribute("data-item-id")!,
+          {
+            rank: (<HTMLDataElement>ev.currentTarget).getAttribute("data-rank"),
+          }
+        );
       });
 
       // TODO: This should really just be a single item-macro class
@@ -241,7 +247,10 @@ export class LancerPilotSheet extends LancerActorSheet {
 
         const el = $(ev.currentTarget).closest(".item")[0] as HTMLElement;
 
-        game.lancer.prepareItemMacro(this.actor._id, el.getAttribute("data-item-id")!);
+        (<LancerGame>game).lancer.prepareItemMacro(
+          this.actor._id,
+          el.getAttribute("data-item-id")!
+        );
       });
 
       // Core active & passive text rollers
@@ -265,21 +274,21 @@ export class LancerPilotSheet extends LancerActorSheet {
 
       // Weapon rollers
       let weaponMacro = html.find(".roll-attack");
-      weaponMacro.on("click", (ev: Event) => {
+      weaponMacro.on("click", ev => {
         if (!ev.currentTarget) return; // No target, let other handlers take care of it.
         ev.stopPropagation();
 
         const weaponElement = $(ev.currentTarget).closest(".weapon")[0] as HTMLElement;
         const weaponId = weaponElement.getAttribute("data-item-id");
-        if (!weaponId) return ui.notifications.warn(`Error rolling macro: No weapon ID!`);
+        if (!weaponId) return ui.notifications?.warn(`Error rolling macro: No weapon ID!`);
         const item = this.actor.getOwnedItem(weaponId);
         if (!item)
-          return ui.notifications.warn(
+          return ui.notifications?.warn(
             `Error rolling macro: Couldn't find weapon with ID ${weaponId}.`
           );
 
         const weapon = item as LancerPilotWeapon | LancerMechWeapon;
-        game.lancer.prepareItemMacro(this.actor._id, weapon._id);
+        (<LancerGame>game).lancer.prepareItemMacro(this.actor._id, weapon._id);
       });
     }
 
@@ -289,7 +298,7 @@ export class LancerPilotSheet extends LancerActorSheet {
     if (this.actor.owner) {
       // Customized increment/decrement arrows
       let decr = html.find('button[class*="mod-minus-button"]');
-      decr.on("click", (ev: Event) => {
+      decr.on("click", ev => {
         if (!ev.currentTarget) return; // No target, let other handlers take care of it.
         const but = $(ev.currentTarget as HTMLElement);
         (but.next()[0] as HTMLInputElement).value = (
@@ -298,7 +307,7 @@ export class LancerPilotSheet extends LancerActorSheet {
         this.submit({});
       });
       let incr = html.find('button[class*="mod-plus-button"]');
-      incr.on("click", (ev: Event) => {
+      incr.on("click", ev => {
         if (!ev.currentTarget) return; // No target, let other handlers take care of it.
         const but = $(ev.currentTarget as HTMLElement);
         (but.prev()[0] as HTMLInputElement).value = (
@@ -342,7 +351,7 @@ export class LancerPilotSheet extends LancerActorSheet {
 
       // Delete Item when trash can is clicked
       let items = html.find('.stats-control[data-action*="delete"]');
-      items.on("click", (ev: Event) => {
+      items.on("click", ev => {
         if (!ev.currentTarget) return; // No target, let other handlers take care of it.
         ev.stopPropagation(); // Avoids triggering parent event handlers
         console.log(ev);
@@ -358,6 +367,7 @@ export class LancerPilotSheet extends LancerActorSheet {
           let weapons = mounts[parseInt(mount_element.data("itemKey"))].weapons;
 
           weapons.splice(parseInt(weapon_element.data("itemKey")), 1);
+          // @ts-ignore TODO Fix dot notation again, ffs
           this.actor.update({ "data.mech_loadout.mounts": mounts }).then();
         }
 
@@ -368,7 +378,9 @@ export class LancerPilotSheet extends LancerActorSheet {
 
       // Create Mounts
       let add_button = html.find('.add-button[data-action*="create"]');
-      add_button.on("click", (ev: Event) => {
+      add_button.on("click", ev => {
+        if (!(this.actor.data.type === "pilot"))
+          throw new Error(`Bad sheet configuration for actor ${this.actor.id}`);
         ev.stopPropagation();
         let mount: LancerMountData = {
           type: MountType.Main,
@@ -378,25 +390,31 @@ export class LancerPilotSheet extends LancerActorSheet {
 
         let mounts = duplicate(this.actor.data.data.mech_loadout.mounts);
         mounts.push(mount);
+        // @ts-ignore TODO Fix dot notation again, ffs
         this.actor.update({ "data.mech_loadout.mounts": mounts }).then();
         this._onSubmit(ev).then();
       });
 
       // Update Mounts
       let mount_selector = html.find('select.mounts-control[data-action*="update"]');
-      mount_selector.on("change", (ev: JQuery.ChangeEvent) => {
+      mount_selector.on("change", ev => {
+        if (!(this.actor.data.type === "pilot"))
+          throw new Error(`Bad sheet configuration for actor ${this.actor.id}`);
         ev.stopPropagation();
         let mounts = duplicate(this.actor.data.data.mech_loadout.mounts);
         mounts[
           parseInt($(ev.currentTarget).closest(".lancer-mount-container").data("itemKey"))
-        ].type = $(ev.currentTarget).children("option:selected").val();
+        ].type = $(ev.currentTarget).children("option:selected").val() as MountType;
+        // @ts-ignore TODO Fix dot notation again, ffs
         this.actor.update({ "data.mech_loadout.mounts": mounts }).then();
         this._onSubmit(ev).then();
       });
 
       // Delete Mounts
       let mount_trash = html.find('a.mounts-control[data-action*="delete"]');
-      mount_trash.on("click", (ev: Event) => {
+      mount_trash.on("click", ev => {
+        if (!(this.actor.data.type === "pilot"))
+          throw new Error(`Bad sheet configuration for actor ${this.actor.id}`);
         if (!ev.currentTarget) return; // No target, let other handlers take care of it.
         ev.stopPropagation();
         let mounts = duplicate(this.actor.data.data.mech_loadout.mounts);
@@ -408,24 +426,25 @@ export class LancerPilotSheet extends LancerActorSheet {
           if (weapon._id) this.actor.deleteOwnedItem(weapon._id).then();
         }
         mounts.splice(parseInt(id), 1);
+        // @ts-ignore TODO Fix dot notation again, ffs
         this.actor.update({ "data.mech_loadout.mounts": mounts }).then();
         this._onSubmit(ev).then();
       });
 
       // Cloud download
       let download = html.find('.cloud-control[data-action*="download"]');
-      download.on("click", (ev: Event) => {
+      download.on("click", ev => {
         ev.stopPropagation();
         // Get the data
-        ui.notifications.info("Importing character...");
+        ui.notifications?.info("Importing character...");
         import_pilot_by_code((this.actor.data.data as LancerPilotData).pilot.cloud_code)
           .then(cc_pilot => update_pilot(this.actor as LancerActor, cc_pilot))
           .then(() => {
-            ui.notifications.info("Successfully loaded pilot state from cloud");
+            ui.notifications?.info("Successfully loaded pilot state from cloud");
           })
           .catch(e => {
             console.warn(e);
-            ui.notifications.warn(
+            ui.notifications?.warn(
               "Failed to update pilot, likely due to missing LCP data: " + e.message
             );
           });
@@ -438,7 +457,7 @@ export class LancerPilotSheet extends LancerActorSheet {
     event.stopPropagation(); // Avoids triggering parent event handlers
     // It's an input so it'll always be an InputElement, right?
     let path = this.getStatPath(event);
-    if (!path) return ui.notifications.error("Error finding stat for macro.");
+    if (!path) return ui.notifications?.error("Error finding stat for macro.");
 
     let tSplit = path.split(".");
     let data = {
@@ -471,30 +490,34 @@ export class LancerPilotSheet extends LancerActorSheet {
   }
 
   async _onDrop(event: any): Promise<boolean> {
-    let item: Item | null = await super._onDrop(event);
+    let item: LancerItem | null = await super._onDrop(event);
+    if (!(this.actor.data.type === "pilot"))
+      throw new Error(`Bad sheet configuration for actor ${this.actor.id}`);
 
-    const actor = this.actor as LancerActor;
     if (item) {
       // Swap mech frame
-      if (item.type === "frame") {
+      if (item.data.type === "frame") {
         let newFrameStats: LancerFrameStatsData;
         let oldFrameStats: LancerFrameStatsData | undefined = undefined;
         // Remove old frame
-        for (let item of actor.items) {
+        for (let item of this.actor.items) {
           const i = (item as unknown) as LancerItem;
           if (i.type === "frame") {
-            console.log(`${lp} Removing ${actor.name}'s old ${i.name} frame.`);
-            oldFrameStats = duplicate((i as LancerFrame).data.data.stats);
+            console.log(`${lp} Removing ${this.actor.name}'s old ${i.name} frame.`);
+            oldFrameStats = duplicate((i as LancerFrame).data.data.stats) as LancerFrameStatsData;
             await this.actor.deleteOwnedItem(i._id);
           }
         }
-        const frame = (await actor.createOwnedItem(duplicate(item.data))) as any;
-        console.log(`${lp} Added ${frame.name} to ${actor.name}.`);
+        // @ts-ignore duplicate is cursed af
+        const frame = (await this.actor.createOwnedItem(
+          <LancerFrameItemData>duplicate(item.data)
+        )) as LancerFrameItemData;
+        console.log(`${lp} Added ${frame.name} to ${this.actor.name}.`);
         newFrameStats = frame.data.stats;
 
         if (newFrameStats) {
-          console.log(`${lp} Swapping Frame stats for ${actor.name}`);
-          await actor.swapFrames(newFrameStats, oldFrameStats);
+          console.log(`${lp} Swapping Frame stats for ${this.actor.name}`);
+          await this.actor.swapFrames(newFrameStats, oldFrameStats);
         }
         return Promise.resolve(true);
       }
@@ -502,7 +525,7 @@ export class LancerPilotSheet extends LancerActorSheet {
       else if (item.type === "mech_weapon") {
         let mounts = duplicate(this.actor.data.data.mech_loadout.mounts);
         if (!mounts.length) {
-          ui.notifications.error(
+          ui.notifications?.error(
             "A mech weapon was dropped on the page, but there are no weapon mounts installed. Go to the Frame Loadout tab to add some!"
           );
           return Promise.resolve(false);
@@ -511,7 +534,7 @@ export class LancerPilotSheet extends LancerActorSheet {
         let mount_element = $(event.target.closest(".lancer-mount-container"));
 
         if (!mount_element.length) {
-          ui.notifications.error(
+          ui.notifications?.error(
             "You dropped a mech weapon on the page, but not onto a weapon mount. Go to the Frame Loadout tab to find them!"
           );
           return Promise.resolve(false);
@@ -549,17 +572,21 @@ export class LancerPilotSheet extends LancerActorSheet {
           let mount = mounts[parseInt(mount_element.data("itemKey"))];
           let valid = mount_whitelist[(item as LancerMechWeapon).data.data.mount];
           if (!valid.includes(mount.type)) {
-            ui.notifications.error("The weapon you dropped is too large for this weapon mount!");
+            ui.notifications?.error("The weapon you dropped is too large for this weapon mount!");
             return Promise.resolve(false);
             // TODO: superheavy secondary mounts
             // } else if (item.data.data.mount === "Superheavy" && !mount.secondary_mount) {
-            //   ui.notifications.error(
+            //   ui.notifications?.error(
             //     "Assign a secondary mount to this heavy mount in order to equip a superheavy weapon"
             //   );
           } else {
-            let weapon = await actor.createOwnedItem(duplicate(item.data));
+            // @ts-ignore duplicate is cursed af
+            let weapon = (await this.actor.createOwnedItem(
+              <LancerMechWeaponItemData>duplicate(item.data)
+            )) as LancerMechWeaponItemData;
             mount.weapons.push(weapon);
             console.log(`${lp} Inserted Mech Weapon into Mount`, weapon);
+            // @ts-ignore TODO Fix dot notation again, ffs
             await this.actor.update({ "data.mech_loadout.mounts": mounts });
           }
         }
@@ -569,7 +596,7 @@ export class LancerPilotSheet extends LancerActorSheet {
         await this._addOwnedItem(item);
         return Promise.resolve(true);
       } else if (LANCER.npc_items.includes(item.type)) {
-        ui.notifications.error(`Cannot add Item of type "${item.type}" to a Pilot.`);
+        ui.notifications?.error(`Cannot add Item of type "${item.type}" to a Pilot.`);
         return Promise.resolve(false);
       }
 
@@ -671,7 +698,10 @@ export class LancerPilotSheet extends LancerActorSheet {
    * @param event An event, used by a proper overcharge section in the sheet, to get the overcharge field
    * @param level Level to set overcharge to
    */
-  _setOverchargeLevel(event: MouseEvent, level: number) {
+  _setOverchargeLevel(
+    event: JQuery.ClickEvent<HTMLElement, undefined, HTMLElement, HTMLElement>,
+    level: number
+  ) {
     let target = <HTMLElement>event.currentTarget;
     let inputField = $(target).siblings('[name="data.mech.overcharge_level"]');
 
@@ -684,7 +714,7 @@ export class LancerPilotSheet extends LancerActorSheet {
    * @param event An event, used by a proper overcharge section in the sheet, to get the overcharge field
    */
   _onClickOvercharge(event: MouseEvent) {
-    game.lancer.prepareOverchargeMacro(this.actor._id);
+    (<LancerGame>game).lancer.prepareOverchargeMacro(this.actor._id);
   }
 
   /* -------------------------------------------- */
@@ -695,6 +725,8 @@ export class LancerPilotSheet extends LancerActorSheet {
    * @private
    */
   _updateObject(event: Event | JQuery.Event, formData: any): Promise<any> {
+    if (!(this.actor.data.type === "pilot"))
+      throw new Error(`Bad sheet configuration for actor ${this.actor.id}`);
     // Do these only if the callsign updated
     if (this.actor.data.data.pilot.callsign !== formData["data.pilot.callsign"]) {
       // Use the Actor's name for the pilot's callsign

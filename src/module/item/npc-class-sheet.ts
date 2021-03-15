@@ -1,6 +1,10 @@
 import { LancerActor } from "../actor/lancer-actor";
 import { LANCER } from "../config";
-import { LancerNPCFeatureItemData } from "../interfaces";
+import {
+  LancerNPCClassData,
+  LancerNPCClassItemData,
+  LancerNPCFeatureItemData,
+} from "../interfaces";
 import { LancerItemSheet } from "./item-sheet";
 import { LancerItem, LancerNPCClass, npc_feature_preview } from "./lancer-item";
 const lp = LANCER.log_prefix;
@@ -13,21 +17,21 @@ export class LancerNPCClassSheet extends LancerItemSheet {
   /**
    * @override
    * Extend and override the default options used by the generic Lancer item sheet
-   * @returns {Object}
    */
   static get defaultOptions() {
-    return mergeObject(super.defaultOptions, {
+    return {
+      ...super.defaultOptions,
       width: 900,
       height: 750,
       dragDrop: [{ dragSelector: ".item" }],
-    });
+    };
   }
 
   base_feature_items!: LancerNPCFeatureItemData[];
   optional_feature_items!: LancerNPCFeatureItemData[];
 
   /** @override */
-  _updateObject(event: any, formData: any) {
+  _updateObject(event: Event | JQuery.Event, formData: Record<string, any>) {
     formData["data.stats.hp"] = LancerNPCClassSheet.arrayifyStats(formData["data.stats.hp"]);
     formData["data.stats.heatcap"] = LancerNPCClassSheet.arrayifyStats(
       formData["data.stats.heatcap"]
@@ -72,8 +76,11 @@ export class LancerNPCClassSheet extends LancerItemSheet {
     console.log(`${lp} Item sheet form data: `, formData);
 
     // Propogate to owner
-    if(this.item.isOwned) {
-      (<LancerActor>this.item.actor).swapNPCClassOrTier((<LancerNPCClass>this.item).data.data.stats,false);
+    if (this.item.isOwned) {
+      (<LancerActor>this.item.actor).swapNPCClassOrTier(
+        (<LancerNPCClass>this.item).data.data.stats,
+        false
+      );
     }
 
     // Update the Item
@@ -84,7 +91,7 @@ export class LancerNPCClassSheet extends LancerItemSheet {
     return data.map(x => parseFloat(x));
   }
 
-  getData(): ItemSheetData {
+  getData() {
     let item = this.item as LancerItem;
     //Fetching local copies for use in drag-and-drop flow
     item.base_feature_items.then(features => (this.base_feature_items = features));
@@ -102,9 +109,9 @@ export class LancerNPCClassSheet extends LancerItemSheet {
     //So even if this looks like it's wrong, it's not
     // This nesting is necessary to listen properly
     item.base_feature_items.then(base_features => {
-      this._displayFeatures(base_features, html.find("#base_feature_items"))
+      this._displayFeatures(base_features, html.find("#base_feature_items"));
       item.optional_feature_items.then(optional_features => {
-        this._displayFeatures(optional_features, html.find("#optional_feature_items"))
+        this._displayFeatures(optional_features, html.find("#optional_feature_items"));
         // Delete Item when trash can is clicked
         let arrControl = html.find('.arr-control[data-action*="delete"]');
         arrControl.on("click", (ev: Event) => {
@@ -114,14 +121,15 @@ export class LancerNPCClassSheet extends LancerItemSheet {
           const itemEl = $(ev.currentTarget).closest(".item");
           let fakeId: string = itemEl.data("item-fakeid");
 
-          if(itemEl.parent().parent().hasClass("base-features-container")){
+          if (itemEl.parent().parent().hasClass("base-features-container")) {
             // TODO: Remove this on NPC Feature rework
             // Since we could have non-features here...
             //@ts-ignore
             let newArr = item.data.data.base_features.filter(feat => {
               return feat !== fakeId;
             });
-            item.update({data: {base_features: newArr}},{});
+            item.update({ data: { base_features: newArr } }, {});
+            // @ts-ignore Entity.render incorrectly requires parameters TODO
             item.render();
           } else if (itemEl.parent().parent().hasClass("opt-features-container")) {
             // TODO: Remove this on NPC Feature rework
@@ -130,7 +138,8 @@ export class LancerNPCClassSheet extends LancerItemSheet {
             let newArr = item.data.data.optional_features.filter(feat => {
               return feat !== fakeId;
             });
-            item.update({data: {optional_features: newArr}},{});
+            item.update({ data: { optional_features: newArr } }, {});
+            // @ts-ignore Entity.render incorrectly requires parameters TODO
             item.render();
           }
         });
@@ -157,7 +166,7 @@ export class LancerNPCClassSheet extends LancerItemSheet {
   }
 
   /** @override */
-  _onDrop(event: DragEvent) {  
+  _onDrop(event: DragEvent) {
     // I promise this works
     // At least for now
     //@ts-ignore
@@ -166,7 +175,7 @@ export class LancerNPCClassSheet extends LancerItemSheet {
       console.log(`Dropped feature ${dropData.id} on class sheet ${this.id}`);
 
       this.addFeature(dropData.id, dropData?.pack);
-    })
+    });
   }
 
   // TODO:
@@ -177,22 +186,22 @@ export class LancerNPCClassSheet extends LancerItemSheet {
    * @param featID      String ID of the feature to add
    * @param compendium  Optionally, the compendium path to find the item at
    */
-   private async addFeature(featID: string, compendium?: string) {
+  private async addFeature(featID: string, compendium?: string) {
     let itemString = "";
-    if(compendium) {
+    if (compendium) {
       itemString = "Compendium." + compendium + "." + featID;
     } else {
       itemString = "Item." + featID;
     }
     // Yes, this exists
     //@ts-ignore
-    let foundFeat: LancerNPCFeature | null = await fromUuid(itemString);    
-    if(!foundFeat) {
+    let foundFeat: LancerNPCFeature | null = await fromUuid(itemString);
+    if (!foundFeat) {
       console.log("That item doesn't exist!");
       return;
     }
-    
-    if(!(foundFeat.type === "npc_feature")) {
+
+    if (!(foundFeat.type === "npc_feature")) {
       console.log("You didn't drop a feature!");
       return;
     }
@@ -207,20 +216,21 @@ export class LancerNPCClassSheet extends LancerItemSheet {
     // Apparently this will only work for features that exist in the feature compendium
     // Because our feature renderer grabs data from there
     // WHY!?!?!?
-    if(isBase){
+    if (!(this.object.data.type === "npc_class")) return;
+    if (isBase) {
       let baseFeats = [...this.object.data.data.base_features];
       if (baseFeats.includes(fakeId)) {
         return;
       }
       baseFeats.push(fakeId);
-      await this.object.update({data: {base_features: baseFeats}});
+      await this.object.update({ data: { base_features: baseFeats } });
     } else {
       let optFeats = [...this.object.data.data.optional_features];
       if (optFeats.includes(fakeId)) {
         return;
       }
       optFeats.push(fakeId);
-      await this.object.update({data: {optional_features: optFeats}});
+      await this.object.update({ data: { optional_features: optFeats } });
     }
     this.render();
   }

@@ -102,7 +102,7 @@ export const PACKS = [
 // Quick helper
 async function get_pack<T>(pack_name: string): Promise<T[]> {
   let full_pack_name = `world.${pack_name}`;
-  let pack = game.packs.get(full_pack_name);
+  let pack = game.packs!.get(full_pack_name);
   if (pack) {
     // @ts-ignore Compendium typing is lacking TODO
     return pack.getContent().then(g => g.map(v => v.data)) as Promise<T[]>;
@@ -157,7 +157,7 @@ async function pack_lookup<T extends LancerItem>(
 ): Promise<T | null> {
   let full_pack_name = `world.${pack_name}`;
 
-  let pack = game.packs.get(full_pack_name);
+  let pack = game.packs!.get(full_pack_name);
   if (!pack) {
     console.warn("No such pack: ", full_pack_name);
     return null;
@@ -352,11 +352,11 @@ export async function MachineMind_to_VTT_create_items(
   x: SupportedCompconEntity[]
 ): Promise<LancerItem[]> {
   let data = x.map(MachineMind_to_VTT_data);
-  return LancerItem.createMany(data) as Promise<LancerItem[]>;
+  return LancerItem.create(data) as Promise<LancerItem[]>;
 }
 
 // TODO: implement
-export function MachineMind_to_VTT_data(x: SupportedCompconEntity): LancerItemData[] {
+export function MachineMind_to_VTT_data(x: SupportedCompconEntity): LancerItemData {
   let conv = new Converter("");
 
   // In most cases, serialized data is fine
@@ -433,7 +433,7 @@ export async function MachineMind_pilot_to_VTT_items_compendium_lookup(
       let conv = new Converter("");
       let sd: LancerSkillData = conv.CustomSkill_to_LancerSkillData(x.Skill as CustomSkill);
       sd.rank = x.Rank;
-      let sid: LancerSkillItemData = {
+      let sid: Partial<LancerSkillItemData> = {
         name: sd.name,
         type: "skill",
         img: "systems/lancer/assets/icons/skill.svg",

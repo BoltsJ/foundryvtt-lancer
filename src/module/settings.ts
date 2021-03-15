@@ -9,7 +9,7 @@ export const registerSettings = function () {
     scope: "world",
     config: false,
     type: String,
-    default: 0,
+    default: "0",
   });
 
   game.settings.register(LANCER.sys_name, LANCER.setting_core_data, {

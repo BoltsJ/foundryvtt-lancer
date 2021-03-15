@@ -7,10 +7,11 @@ import {
   LancerNPCClassStatsData,
   LancerNPCData,
   LancerMountData,
+  LancerMechData,
 } from "../interfaces";
 import { LANCER } from "../config";
 import { MountType } from "machine-mind";
-import { LancerItemData } from "../item/lancer-item";
+import { LancerItem, LancerItemData } from "../item/lancer-item";
 import { ItemDataManifest } from "../item/util";
 import { renderMacro } from "../macros";
 const lp = LANCER.log_prefix;
@@ -84,7 +85,7 @@ export function lancerActorInit(data: any) {
 /**
  * Extend the Actor class for Lancer Actors.
  */
-export class LancerActor extends Actor<LancerActorData> {
+export class LancerActor extends Actor<LancerActorData, LancerItem> {
   /**
    * @override
    * Handle how changes to a Token attribute bar are applied to the Actor.
@@ -119,8 +120,7 @@ export class LancerActor extends Actor<LancerActorData> {
     // Function is only applicable to pilots.
     if (this.data.type !== "pilot") return;
 
-    const data = duplicate(this.data)
-    const mech = duplicate(data.data.mech);
+    const mech = duplicate<LancerMechData, "lenient">(this.data.data.mech);
 
     if (!oldFrame) {
       oldFrame = {
@@ -158,8 +158,7 @@ export class LancerActor extends Actor<LancerActorData> {
     mech.sp = mech.sp - oldFrame.sp + newFrame.sp;
 
     // Update the actor
-    data.data.mech = mech;
-    await this.update(data);
+    await this.update({ "data.mech": mech });
   }
 
   /**
@@ -288,7 +287,7 @@ export class LancerActor extends Actor<LancerActorData> {
     data.data.activations = newNPCClass.activations[i];
 
     // Update the actor
-    data.data.mech = mech;
+    data.data.mech = <LancerMechData>mech; // TODO
     await this.update(data);
   }
 
